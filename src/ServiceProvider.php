@@ -32,6 +32,11 @@ class ServiceProvider extends AddonServiceProvider
         Console\Commands\ImportSubscribers::class,
     ];
 
+    protected $vite = [
+        'input' => ['resources/css/cp.css'],
+        'publicDirectory' => 'resources/dist',
+    ];
+
     public function register()
     {
         parent::register();

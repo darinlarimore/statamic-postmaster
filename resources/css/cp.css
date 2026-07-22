@@ -1,0 +1,192 @@
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/*
+ * Control-panel styles for Email Subscribe. Compiled by Vite/Tailwind into a
+ * published stylesheet so it loads outside Statamic's Vue-mounted CP body
+ * (an inline <style> there gets stripped by the Vue template compiler).
+ *
+ * Tailwind's preflight is disabled and every utility is prefixed with `es-`,
+ * so nothing here resets or clashes with the CP's own styles. The semantic
+ * class names below match the Blade markup unchanged.
+ */
+
+@layer components {
+    .es-wrap {
+        @apply es-mx-auto es-max-w-[1100px];
+    }
+
+    .es-header {
+        @apply es-mb-5 es-flex es-flex-wrap es-items-center es-justify-between es-gap-3;
+    }
+
+    .es-header h1 {
+        @apply es-m-0 es-text-[22px] es-font-bold;
+    }
+
+    .es-tabs {
+        @apply es-mb-5 es-flex es-flex-wrap es-gap-1 es-border-b es-border-gray-500/25;
+    }
+
+    .es-tabs a {
+        @apply -es-mb-px es-border-b-2 es-border-transparent es-px-3.5 es-py-2 es-text-sm es-text-inherit es-no-underline es-opacity-70 hover:es-opacity-100;
+    }
+
+    .es-tabs a.active {
+        @apply es-border-current es-font-semibold es-opacity-100;
+    }
+
+    .es-card {
+        @apply es-mb-5 es-rounded-lg es-border es-border-gray-500/20 es-bg-white es-p-5;
+    }
+
+    html[class*='dark'] .es-card {
+        @apply es-bg-white/[.03];
+    }
+
+    .es-card h2 {
+        @apply es-mb-3 es-mt-0 es-text-[15px] es-font-semibold;
+    }
+
+    .es-stats {
+        @apply es-mb-5 es-grid es-gap-3;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+
+    .es-stat {
+        @apply es-rounded-lg es-border es-border-gray-500/20 es-px-4 es-py-3.5;
+    }
+
+    .es-stat .es-num {
+        @apply es-text-2xl es-font-bold;
+    }
+
+    .es-stat .es-label {
+        @apply es-text-xs es-uppercase es-tracking-wide es-opacity-65;
+    }
+
+    .es-table {
+        @apply es-w-full es-border-collapse es-text-sm;
+    }
+
+    .es-table th {
+        @apply es-border-b es-border-gray-500/25 es-px-2.5 es-py-2 es-text-left es-text-xs es-uppercase es-tracking-wide es-opacity-60;
+    }
+
+    .es-table td {
+        @apply es-border-b es-border-gray-500/10 es-p-2.5;
+    }
+
+    .es-table tr:last-child td {
+        @apply es-border-b-0;
+    }
+
+    .es-badge {
+        @apply es-inline-block es-rounded-full es-bg-gray-500/15 es-px-2.5 es-py-0.5 es-text-xs es-font-semibold;
+    }
+
+    .es-badge.subscribed,
+    .es-badge.sent {
+        @apply es-bg-emerald-100 es-text-emerald-800;
+    }
+
+    .es-badge.pending,
+    .es-badge.paused,
+    .es-badge.draft {
+        @apply es-bg-amber-100 es-text-amber-800;
+    }
+
+    .es-badge.sending {
+        @apply es-bg-blue-100 es-text-blue-800;
+    }
+
+    .es-badge.unsubscribed,
+    .es-badge.cancelled {
+        @apply es-bg-gray-500/15;
+    }
+
+    .es-badge.bounced,
+    .es-badge.complained,
+    .es-badge.failed {
+        @apply es-bg-red-100 es-text-red-800;
+    }
+
+    .es-btn {
+        @apply es-inline-block es-cursor-pointer es-rounded-md es-border es-border-gray-500/35 es-bg-transparent es-px-3.5 es-py-[7px] es-text-[13px] es-font-semibold es-text-inherit es-no-underline hover:es-border-gray-500/60;
+    }
+
+    .es-btn.primary {
+        @apply es-border-zinc-900 es-bg-zinc-900 es-text-white;
+    }
+
+    .es-btn.danger {
+        @apply es-border-red-700/40 es-text-red-700;
+    }
+
+    .es-form-grid {
+        @apply es-grid es-gap-3.5;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    .es-field {
+        @apply es-mb-3.5;
+    }
+
+    .es-field > span {
+        @apply es-mb-1 es-block es-text-[13px] es-font-semibold;
+    }
+
+    .es-field small {
+        @apply es-mt-0.5 es-block es-text-xs es-opacity-60;
+    }
+
+    .es-input,
+    .es-select {
+        @apply es-box-border es-w-full es-rounded-md es-border es-border-gray-500/35 es-bg-transparent es-px-2.5 es-py-2 es-text-sm es-text-inherit;
+    }
+
+    .es-checks label {
+        @apply es-flex es-items-center es-gap-2 es-py-1 es-text-sm;
+    }
+
+    .es-flash {
+        @apply es-mb-4 es-rounded-md es-px-3.5 es-py-2.5 es-text-sm;
+    }
+
+    .es-flash.success {
+        @apply es-bg-emerald-50 es-text-emerald-800;
+    }
+
+    .es-flash.error {
+        @apply es-bg-red-50 es-text-red-800;
+    }
+
+    .es-actions {
+        @apply es-flex es-flex-wrap es-items-center es-gap-2;
+    }
+
+    .es-progress {
+        @apply es-h-2 es-overflow-hidden es-rounded-full es-bg-gray-500/15;
+    }
+
+    .es-progress > div {
+        @apply es-h-full es-bg-emerald-500;
+    }
+
+    .es-muted {
+        @apply es-text-[13px] es-opacity-60;
+    }
+
+    .es-filters {
+        @apply es-mb-3.5 es-flex es-flex-wrap es-gap-2;
+    }
+
+    .es-pagination {
+        @apply es-mt-3.5 es-flex es-gap-1.5 es-text-sm;
+    }
+
+    .es-pagination a,
+    .es-pagination span {
+        @apply es-rounded-md es-border es-border-gray-500/25 es-px-2.5 es-py-1 es-text-inherit es-no-underline;
+    }
+}
