@@ -165,7 +165,7 @@ class ServiceProvider extends AddonServiceProvider
                 ->section('Tools')
                 ->can('view email subscribe')
                 ->route('email-subscribe.index')
-                ->icon('email');
+                ->icon('email-utility');
         });
     }
 }
