@@ -1,0 +1,39 @@
+<mjml>
+    <mj-head>
+        <mj-title>{{ subject }}</mj-title>
+        {{ if preheader }}<mj-preview>{{ preheader }}</mj-preview>{{ /if }}
+        <mj-attributes>
+            <mj-all font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" />
+            <mj-text font-size="15px" line-height="1.6" color="#3f3f46" />
+        </mj-attributes>
+    </mj-head>
+    <mj-body background-color="#f4f4f5">
+        <mj-section background-color="#ffffff" border-radius="8px" padding="32px 24px">
+            <mj-column>
+                <mj-text font-size="22px" font-weight="700" color="#18181b" padding-bottom="8px">
+                    {{ subject }}
+                </mj-text>
+
+                {{ if first_name }}
+                    <mj-text>Hi {{ first_name }},</mj-text>
+                {{ /if }}
+
+                {{ if entry }}
+                    <mj-text>{{ entry:content }}</mj-text>
+                {{ /if }}
+            </mj-column>
+        </mj-section>
+
+        <mj-section padding="16px 24px">
+            <mj-column>
+                <mj-text font-size="12px" color="#71717a" align="center">
+                    You're receiving this because you subscribed with {{ email }}.
+                    <br />
+                    <a href="{{ unsubscribe_url }}" style="color:#52525b;">Unsubscribe</a>
+                    &nbsp;&middot;&nbsp;
+                    <a href="{{ preferences_url }}" style="color:#52525b;">Email preferences</a>
+                </mj-text>
+            </mj-column>
+        </mj-section>
+    </mj-body>
+</mjml>

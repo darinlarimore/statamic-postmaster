@@ -1,0 +1,8 @@
+{
+    "name": "statamic-email-subscribe",
+    "private": true,
+    "description": "Dev-only dependencies: the mjml binary used by spatie/mjml-php when testing template compilation locally.",
+    "devDependencies": {
+        "mjml": "^5.4.0"
+    }
+}

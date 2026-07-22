@@ -1,0 +1,50 @@
+{
+    "name": "darinlarimore/statamic-email-subscribe",
+    "autoload": {
+        "psr-4": {
+            "Darinlarimore\\StatamicEmailSubscribe\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Darinlarimore\\StatamicEmailSubscribe\\Tests\\": "tests"
+        }
+    },
+    "require": {
+        "statamic/cms": "^5.0|^6.0",
+        "php": "^8.2",
+        "spatie/mjml-php": "^1.2"
+    },
+    "require-dev": {
+        "pestphp/pest": "*",
+        "pestphp/pest-plugin-laravel": "*",
+        "mockery/mockery": "*",
+        "orchestra/testbench": "^9.0|^10.0|^11.0",
+        "laravel/pint": "^1.26",
+        "laravel/boost": "^2.4"
+    },
+    "config": {
+        "allow-plugins": {
+            "pixelfear/composer-dist-plugin": true,
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "statamic": {
+            "name": "Statamic Email Subscribe",
+            "description": "Newsletter subscriptions, MJML campaigns, and queued sendouts for Statamic"
+        },
+        "laravel": {
+            "providers": [
+                "Darinlarimore\\StatamicEmailSubscribe\\ServiceProvider"
+            ]
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/pest",
+        "format": "vendor/bin/pint",
+        "format:check": "vendor/bin/pint --test"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
