@@ -84,23 +84,6 @@ Use `lists="newsletter|product"` to subscribe to multiple lists at once. The for
 
 With double opt-in enabled (the default), new subscribers get a confirmation email and stay `pending` until they click the signed verification link.
 
-### Unsubscribe page
-
-Every campaign already carries signed unsubscribe/preferences links (plus the one-click header), but you can also offer an unsubscribe form anywhere on your site:
-
-```antlers
-{{ email_subscribe:unsubscribe_form redirect="/unsubscribed" }}
-    {{ if success }}
-        <p>{{ success }}</p>
-    {{ else }}
-        <input type="email" name="email" placeholder="you@example.com" required>
-        <button>Unsubscribe</button>
-    {{ /if }}
-{{ /email_subscribe:unsubscribe_form }}
-```
-
-For safety this never unsubscribes directly: the visitor gets a signed confirmation link by email, and the response is identical whether or not the address is subscribed — so the form can't be abused to unsubscribe someone else or probe your list.
-
 ## Campaign templates
 
 A sendout renders a template of your choosing (default: the built-in MJML starter). Templates receive:

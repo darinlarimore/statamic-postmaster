@@ -58,8 +58,6 @@ Blade views extending `statamic::layout` with self-contained `es-*` styles (`res
 - Blade eats literal `{{ }}` even inside `__()` strings — don't put Antlers examples in CP view strings.
 - The MJML sentinel tokens must survive both the view engine and MJML compilation; if you add a token, add it to `render()`, `personalize()`, AND `SendoutsController::preview()`.
 - Laravel Boost runs via `vendor/bin/testbench boost:mcp` (no artisan in a package — the agent MCP configs are already pointed there). Never re-run `boost:install`: it writes a Laravel-app `.env` (database cache/queue drivers) into `vendor/orchestra/testbench-core/laravel/`, which testbench loads and which breaks the whole suite with "no such table: cache/jobs". If that happens, delete that `.env`.
-- The site-facing unsubscribe form (`{{ email_subscribe:unsubscribe_form }}`) never unsubscribes directly — it emails a signed link, and responds identically for unknown addresses so the list can't be probed.
-
 ===
 
 <laravel-boost-guidelines>
