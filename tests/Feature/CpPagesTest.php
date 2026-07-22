@@ -7,6 +7,7 @@ use Darinlarimore\StatamicEmailSubscribe\Support\CampaignRenderer;
 use Statamic\Facades\User;
 
 beforeEach(function () {
+    $this->useDriver('database');
     $this->actingAs(tap(User::make()->makeSuper()->email('admin@example.com'))->save());
 });
 

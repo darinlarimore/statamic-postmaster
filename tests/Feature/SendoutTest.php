@@ -10,6 +10,10 @@ use Darinlarimore\StatamicEmailSubscribe\Services\SendoutService;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 
+beforeEach(function () {
+    $this->useDriver('database');
+});
+
 function makeSendout(array $attributes = []): Sendout
 {
     $list = MailingList::create(['title' => 'Newsletter', 'handle' => 'newsletter']);
@@ -115,7 +119,7 @@ test('pausing mid-send stops the chain and resuming picks up without double-send
     $sendout->refresh();
     expect($sendout->sent_count)->toBe(3);
     expect($sendout->status)->toBe(Sendout::STATUS_SENT);
-    expect($sendout->events()->where('type', SubscriberEvent::TYPE_SENT)->pluck('subscriber_id')->duplicates())->toBeEmpty();
+    expect($sendout->events()->where('type', SubscriberEvent::TYPE_SENT)->pluck('subscriber_key')->duplicates())->toBeEmpty();
 });
 
 test('test emails send synchronously with no tracking and no events', function () {

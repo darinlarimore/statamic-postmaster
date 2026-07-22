@@ -7,6 +7,7 @@ use Darinlarimore\StatamicEmailSubscribe\Support\Urls;
 use Illuminate\Support\Facades\Mail;
 
 beforeEach(function () {
+    $this->useDriver('database');
     Mail::fake();
     $this->list = MailingList::create(['title' => 'Newsletter', 'handle' => 'newsletter']);
 });

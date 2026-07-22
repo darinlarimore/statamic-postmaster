@@ -2,7 +2,7 @@
 
 namespace Darinlarimore\StatamicEmailSubscribe\Mail;
 
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
+use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
 use Darinlarimore\StatamicEmailSubscribe\Support\Urls;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
@@ -11,7 +11,7 @@ use Illuminate\Mail\Mailables\Envelope;
 
 class VerifyMail extends Mailable
 {
-    public function __construct(public Subscriber $subscriber) {}
+    public function __construct(public SubscriberContract $subscriber) {}
 
     public function envelope(): Envelope
     {

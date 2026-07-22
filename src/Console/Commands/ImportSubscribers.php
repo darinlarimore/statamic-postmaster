@@ -2,8 +2,10 @@
 
 namespace Darinlarimore\StatamicEmailSubscribe\Console\Commands;
 
-use Darinlarimore\StatamicEmailSubscribe\Models\MailingList;
+use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
+use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
 use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
+use Darinlarimore\StatamicEmailSubscribe\Records\SubscriberRecord;
 use Illuminate\Console\Command;
 
 class ImportSubscribers extends Command
@@ -25,10 +27,12 @@ class ImportSubscribers extends Command
             return self::FAILURE;
         }
 
+        $subscribers = app(SubscriberRepository::class);
+        $lists = app(ListRepository::class);
         $list = null;
 
         if ($handle = $this->option('list')) {
-            $list = MailingList::where('handle', $handle)->first();
+            $list = $lists->findByHandle($handle);
 
             if (! $list) {
                 $this->error("Mailing list [{$handle}] doesn't exist.");
@@ -61,31 +65,43 @@ class ImportSubscribers extends Command
                 continue;
             }
 
-            $subscriber = Subscriber::firstOrNew(['email' => $email]);
-            $existed = $subscriber->exists;
+            $existing = $subscribers->findByEmail($email);
+            $existed = $existing !== null;
 
-            $subscriber->fill(array_filter([
-                'first_name' => $data['first_name'] ?? null,
-                'last_name' => $data['last_name'] ?? null,
-            ]));
+            $record = $existing instanceof SubscriberRecord
+                ? $existing
+                : new SubscriberRecord(
+                    routeKey: $subscribers->keyForEmail($email),
+                    email: $email,
+                    status: $this->option('subscribed') ? Subscriber::STATUS_SUBSCRIBED : Subscriber::STATUS_PENDING,
+                    source: 'import',
+                    verified_at: $this->option('subscribed') ? now() : null,
+                    exists: $existed,
+                );
 
-            if (! $existed) {
-                $subscriber->source = 'import';
-                $subscriber->status = $this->option('subscribed')
-                    ? Subscriber::STATUS_SUBSCRIBED
-                    : Subscriber::STATUS_PENDING;
-
-                if ($this->option('subscribed')) {
-                    $subscriber->verified_at = now();
-                }
+            if ($existing && ! $existing instanceof SubscriberRecord) {
+                // Database driver returned an Eloquent model; carry its identity.
+                $record = new SubscriberRecord(
+                    routeKey: $existing->getKey(),
+                    email: $email,
+                    status: $existing->status,
+                    source: $existing->source,
+                    exists: true,
+                );
             }
 
-            $subscriber->save();
+            if (($data['first_name'] ?? null) !== null) {
+                $record->first_name = $data['first_name'];
+            }
+
+            if (($data['last_name'] ?? null) !== null) {
+                $record->last_name = $data['last_name'];
+            }
+
+            $saved = $subscribers->upsert($record);
 
             if ($list) {
-                $subscriber->lists()->syncWithoutDetaching([
-                    $list->id => ['subscribed_at' => now()],
-                ]);
+                $subscribers->setMembership($saved->getKey(), $list->getKey(), now(), null);
             }
 
             $existed ? $updated++ : $added++;

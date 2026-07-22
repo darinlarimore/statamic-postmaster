@@ -143,4 +143,49 @@ return [
 
     'route_prefix' => 'email-subscribe',
 
+    /*
+    |--------------------------------------------------------------------------
+    | Storage
+    |--------------------------------------------------------------------------
+    |
+    | Where mailing lists and subscribers live. The "content" driver stores
+    | them as flat-file Statamic entries (git-trackable, no database server);
+    | the "database" driver keeps them in your database via Eloquent. Sendouts,
+    | tracking events, and links always live in the default database driver.
+    |
+    | The content driver resolves recipients with an O(n) scan of the
+    | subscribers collection, which is fine for small-to-medium lists. Large or
+    | high-signup-rate installs should use the "database" driver.
+    |
+    */
+
+    'storage' => [
+        'driver' => env('EMAIL_SUBSCRIBE_STORAGE', 'content'), // content, database
+
+        'collections' => [
+            'subscribers' => 'email_subscribers',
+            'lists' => 'email_lists',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Diagnostics Logging
+    |--------------------------------------------------------------------------
+    |
+    | The addon logs recipient-resolution anomalies, concurrency signals, and
+    | integrity drift to a dedicated "email_subscribe" log channel so they are
+    | easy to watch (and are picked up by warning/error-level monitoring). Use
+    | these signals to decide when to move from the content driver to the
+    | database driver. Define your own "email_subscribe" channel in
+    | config/logging.php to override where these lines land.
+    |
+    */
+
+    'logging' => [
+        'channel' => 'email_subscribe',
+        'path' => storage_path('logs/email_subscribe.log'),
+        'level' => 'warning',
+    ],
+
 ];

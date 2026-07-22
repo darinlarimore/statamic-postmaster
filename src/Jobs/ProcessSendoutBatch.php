@@ -2,12 +2,14 @@
 
 namespace Darinlarimore\StatamicEmailSubscribe\Jobs;
 
+use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
 use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
 use Darinlarimore\StatamicEmailSubscribe\Models\SubscriberEvent;
+use Darinlarimore\StatamicEmailSubscribe\Sendout\SendoutRecipientResolver;
 use Darinlarimore\StatamicEmailSubscribe\Services\SendoutService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
@@ -52,6 +54,7 @@ class ProcessSendoutBatch implements ShouldQueue
             $sendout->update(['status' => Sendout::STATUS_SENDING]);
         }
 
+        $resolver = app(SendoutRecipientResolver::class);
         $batch = $sendout->nextBatch(config('email_subscribe.sendout.batch_size', 100));
 
         foreach ($batch as $subscriber) {
@@ -59,6 +62,17 @@ class ProcessSendoutBatch implements ShouldQueue
 
             if ($sendout->status !== Sendout::STATUS_SENDING) {
                 return;
+            }
+
+            // DB-authoritative mid-send suppression: a subscriber who
+            // unsubscribed, bounced, or complained after the audience was frozen
+            // is skipped (a distinct terminal event, so they leave the pending
+            // set) without a real send and without counting as a failure.
+            if ($resolver->suppressedByEvent($subscriber->getKey())) {
+                $this->recordTerminal($sendout, $subscriber, SubscriberEvent::TYPE_SKIPPED, 'suppressed');
+                $sendout->increment('skip_count');
+
+                continue;
             }
 
             $this->sendToSubscriber($sendout, $subscriber, $service);
@@ -73,7 +87,7 @@ class ProcessSendoutBatch implements ShouldQueue
             }
         }
 
-        if ($sendout->pendingRecipientsQuery()->exists()) {
+        if ($resolver->hasPending($sendout)) {
             self::dispatch($this->sendoutId)
                 ->onConnection($this->connection)
                 ->onQueue($this->queue)
@@ -82,13 +96,15 @@ class ProcessSendoutBatch implements ShouldQueue
             return;
         }
 
+        $resolver->reconcile($sendout);
+
         $sendout->update([
             'status' => Sendout::STATUS_SENT,
             'sent_at' => now(),
         ]);
     }
 
-    protected function sendToSubscriber(Sendout $sendout, Subscriber $subscriber, SendoutService $service): void
+    protected function sendToSubscriber(Sendout $sendout, SubscriberContract $subscriber, SendoutService $service): void
     {
         $attempts = max(1, config('email_subscribe.sendout.max_attempts', 3));
 
@@ -96,27 +112,49 @@ class ProcessSendoutBatch implements ShouldQueue
             try {
                 $service->deliver($sendout, $subscriber);
 
-                $sendout->events()->create([
-                    'subscriber_id' => $subscriber->id,
-                    'type' => SubscriberEvent::TYPE_SENT,
-                ]);
-                $sendout->increment('sent_count');
+                if ($this->recordTerminal($sendout, $subscriber, SubscriberEvent::TYPE_SENT)) {
+                    $sendout->increment('sent_count');
+                }
 
                 return;
             } catch (\Throwable $exception) {
                 if ($attempt === $attempts) {
                     report($exception);
 
-                    $sendout->events()->create([
-                        'subscriber_id' => $subscriber->id,
-                        'type' => SubscriberEvent::TYPE_FAILED,
-                        'detail' => str($exception->getMessage())->limit(250),
-                    ]);
-                    $sendout->increment('fail_count');
+                    if ($this->recordTerminal($sendout, $subscriber, SubscriberEvent::TYPE_FAILED, str($exception->getMessage())->limit(250))) {
+                        $sendout->increment('fail_count');
+                    }
                 } else {
                     sleep(1);
                 }
             }
+        }
+    }
+
+    /**
+     * Record a terminal event (sent/failed/skipped) idempotently. The unique
+     * terminal_key index makes a duplicate insert throw; a unique violation is
+     * treated as already-recorded (returns false, so counters aren't double
+     * bumped), but any other database error is rethrown so the recipient is
+     * retried rather than silently dropped.
+     */
+    protected function recordTerminal(Sendout $sendout, SubscriberContract $subscriber, string $type, ?string $detail = null): bool
+    {
+        try {
+            $sendout->events()->create([
+                'subscriber_key' => $subscriber->getKey(),
+                'terminal_key' => $sendout->id.'-'.$subscriber->getKey(),
+                'type' => $type,
+                'detail' => $detail,
+            ]);
+
+            return true;
+        } catch (QueryException $exception) {
+            if (in_array($exception->getCode(), ['23000', '23505'], true)) {
+                return false;
+            }
+
+            throw $exception;
         }
     }
 }

@@ -2,7 +2,7 @@
 
 namespace Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Cp;
 
-use Darinlarimore\StatamicEmailSubscribe\Models\MailingList;
+use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
 use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
 use Darinlarimore\StatamicEmailSubscribe\Services\SendoutService;
 use Darinlarimore\StatamicEmailSubscribe\Support\CampaignRenderer;
@@ -26,7 +26,7 @@ class SendoutsController extends CpController
         return view('email-subscribe::cp.sendout-form', [
             'title' => 'Create Sendout',
             'sendout' => new Sendout(['list_ids' => []]),
-            'lists' => MailingList::orderBy('title')->get(),
+            'lists' => app(ListRepository::class)->all(),
             'collections' => Collection::all(),
             'action' => cp_route('email-subscribe.sendouts.store'),
         ]);
@@ -61,7 +61,7 @@ class SendoutsController extends CpController
         return view('email-subscribe::cp.sendout-form', [
             'title' => 'Edit Sendout',
             'sendout' => $sendout,
-            'lists' => MailingList::orderBy('title')->get(),
+            'lists' => app(ListRepository::class)->all(),
             'collections' => Collection::all(),
             'action' => cp_route('email-subscribe.sendouts.update', $sendout->id),
         ]);
@@ -170,6 +170,8 @@ class SendoutsController extends CpController
 
     protected function validated(Request $request): array
     {
+        $repository = app(ListRepository::class);
+
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'subject' => ['required', 'string', 'max:255'],
@@ -180,10 +182,14 @@ class SendoutsController extends CpController
             'entry_id' => ['nullable', 'string'],
             'template' => ['nullable', 'string', 'max:255'],
             'list_ids' => ['required', 'array', 'min:1'],
-            'list_ids.*' => ['integer', 'exists:email_subscribe_lists,id'],
+            'list_ids.*' => ['string', function (string $attribute, mixed $value, callable $fail) use ($repository): void {
+                if (! $repository->find((string) $value)) {
+                    $fail(__('The selected mailing list is invalid.'));
+                }
+            }],
         ]);
 
-        $validated['list_ids'] = array_map('intval', $validated['list_ids']);
+        $validated['list_ids'] = array_map('strval', $validated['list_ids']);
 
         return $validated;
     }

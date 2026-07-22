@@ -2,7 +2,8 @@
 
 namespace Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web;
 
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
+use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
+use Darinlarimore\StatamicEmailSubscribe\Services\SubscriberService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Http;
@@ -42,16 +43,19 @@ class WebhookController extends Controller
             return response()->json(['message' => 'Unknown provider, ignored']);
         }
 
+        $subscribers = app(SubscriberRepository::class);
+        $service = app(SubscriberService::class);
+
         foreach ($interactions as [$type, $email, $detail]) {
-            $subscriber = Subscriber::firstWhere('email', strtolower($email));
+            $subscriber = $subscribers->findByEmail(strtolower($email));
 
             if (! $subscriber) {
                 continue;
             }
 
             match ($type) {
-                'bounce' => $subscriber->markBounced($detail),
-                'complaint' => $subscriber->markComplained($detail),
+                'bounce' => $service->markBounced($subscriber, $detail),
+                'complaint' => $service->markComplained($subscriber, $detail),
                 default => null,
             };
         }

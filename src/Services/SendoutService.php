@@ -2,16 +2,21 @@
 
 namespace Darinlarimore\StatamicEmailSubscribe\Services;
 
+use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
+use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
 use Darinlarimore\StatamicEmailSubscribe\Jobs\ProcessSendoutBatch;
 use Darinlarimore\StatamicEmailSubscribe\Mail\CampaignMail;
 use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
+use Darinlarimore\StatamicEmailSubscribe\Records\SubscriberRecord;
 use Darinlarimore\StatamicEmailSubscribe\Support\CampaignRenderer;
 use Illuminate\Support\Facades\Mail;
 
 class SendoutService
 {
-    public function __construct(protected CampaignRenderer $renderer) {}
+    public function __construct(
+        protected CampaignRenderer $renderer,
+        protected SubscriberRepository $subscribers,
+    ) {}
 
     /**
      * Compile the HTML snapshot and put the sendout on the queue. Passing a
@@ -22,11 +27,13 @@ class SendoutService
     {
         $sendout->update([
             'html' => $this->renderer->render($sendout),
-            'recipient_count' => $sendout->recipientsQuery()->count(),
+            'recipient_count' => $sendout->recipientCount(),
             'status' => Sendout::STATUS_PENDING,
             'send_at' => $sendAt,
             'error' => null,
         ]);
+
+        $sendout->freezeRecipients();
 
         if (! $sendAt) {
             $this->dispatchBatchJob($sendout);
@@ -82,11 +89,8 @@ class SendoutService
      */
     public function sendTest(Sendout $sendout, string $email): void
     {
-        $subscriber = Subscriber::firstWhere('email', $email) ?? new Subscriber([
-            'email' => $email,
-            'first_name' => 'Test',
-            'last_name' => 'Subscriber',
-        ]);
+        $subscriber = $this->subscribers->findByEmail($email)
+            ?? SubscriberRecord::transient($email, 'Test', 'Subscriber');
 
         $html = $this->renderer->personalize(
             $this->renderer->render($sendout),
@@ -103,7 +107,7 @@ class SendoutService
     /**
      * Deliver the sendout to one subscriber. Called from the batch job.
      */
-    public function deliver(Sendout $sendout, Subscriber $subscriber): void
+    public function deliver(Sendout $sendout, SubscriberContract $subscriber): void
     {
         $html = $this->renderer->personalize($sendout->html, $sendout, $subscriber);
 

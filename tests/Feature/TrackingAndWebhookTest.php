@@ -8,6 +8,7 @@ use Darinlarimore\StatamicEmailSubscribe\Models\SubscriberEvent;
 use Darinlarimore\StatamicEmailSubscribe\Support\Urls;
 
 beforeEach(function () {
+    $this->useDriver('database');
     $this->list = MailingList::create(['title' => 'Newsletter', 'handle' => 'newsletter']);
     $this->subscriber = Subscriber::create(['email' => 'jane@example.com', 'status' => Subscriber::STATUS_SUBSCRIBED]);
     $this->sendout = Sendout::create([
@@ -53,7 +54,7 @@ test('a bounce webhook suppresses the subscriber', function () {
 
     $fresh = $this->subscriber->fresh();
     expect($fresh->status)->toBe(Subscriber::STATUS_BOUNCED);
-    expect($fresh->events()->where('type', SubscriberEvent::TYPE_BOUNCE)->count())->toBe(1);
+    expect(SubscriberEvent::where('subscriber_key', $fresh->getKey())->where('type', SubscriberEvent::TYPE_BOUNCE)->count())->toBe(1);
 });
 
 test('a complaint webhook suppresses the subscriber', function () {

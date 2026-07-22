@@ -2,8 +2,13 @@
 
 namespace Darinlarimore\StatamicEmailSubscribe\Models;
 
+use Darinlarimore\StatamicEmailSubscribe\Contracts\ListContract;
+use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
+use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
+use Darinlarimore\StatamicEmailSubscribe\Sendout\SendoutRecipientResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Statamic\Facades\Entry;
 
@@ -29,6 +34,7 @@ class Sendout extends Model
 
     protected $casts = [
         'list_ids' => 'array',
+        'recipient_keys' => 'array',
         'send_at' => 'datetime',
         'sent_at' => 'datetime',
     ];
@@ -38,9 +44,17 @@ class Sendout extends Model
         return $this->hasMany(SubscriberEvent::class, 'sendout_id');
     }
 
+    /**
+     * @return Collection<int, ListContract>
+     */
     public function lists()
     {
-        return MailingList::whereIn('id', $this->list_ids ?? [])->get();
+        $repository = app(ListRepository::class);
+
+        return collect($this->list_ids ?? [])
+            ->map(fn ($key) => $repository->find((string) $key))
+            ->filter()
+            ->values();
     }
 
     public function entry()
@@ -68,49 +82,51 @@ class Sendout extends Model
         return $this->from_name ?: config('email_subscribe.from.name');
     }
 
-    /**
-     * Subscribers eligible for this sendout: subscribed status, active on at
-     * least one of the sendout's lists, deduplicated across lists.
-     */
-    public function recipientsQuery()
+    protected function resolver(): SendoutRecipientResolver
     {
-        return Subscriber::query()
-            ->where('status', Subscriber::STATUS_SUBSCRIBED)
-            ->whereIn('id', function ($query) {
-                $query->select('subscriber_id')
-                    ->from('email_subscribe_list_subscriber')
-                    ->whereIn('list_id', $this->list_ids ?? [])
-                    ->whereNull('unsubscribed_at');
-            });
+        return app(SendoutRecipientResolver::class);
     }
 
     /**
-     * Recipients that haven't been sent this sendout yet. Re-queried each
-     * batch so pause/resume and job retries can never double-send: a
-     * subscriber leaves the pending set the moment their "sent" event is
-     * recorded.
+     * Eligible recipient count: subscribed and active on at least one of the
+     * sendout's lists, deduplicated. Delegated to the driver-aware resolver.
      */
-    public function pendingRecipientsQuery()
+    public function recipientCount(): int
     {
-        return $this->recipientsQuery()
-            ->whereNotIn('id', function ($query) {
-                $query->select('subscriber_id')
-                    ->from('email_subscribe_events')
-                    ->where('sendout_id', $this->id)
-                    ->whereIn('type', [SubscriberEvent::TYPE_SENT, SubscriberEvent::TYPE_FAILED]);
-            })
-            ->orderBy('id');
+        return $this->resolver()->recipientCount($this);
     }
 
-    public function nextBatch(int $size)
+    /**
+     * Freeze the eligible recipient set at send start so the audience is
+     * deterministic and per-batch cost is bounded. Sent-truth still lives in the
+     * DB events table, so no-double-send is unaffected.
+     */
+    public function freezeRecipients(): void
     {
-        return $this->pendingRecipientsQuery()->limit($size)->get();
+        $this->update(['recipient_keys' => $this->resolver()->candidateKeys($this)]);
+    }
+
+    /**
+     * The next batch of hydrated recipients that have not yet received this
+     * sendout. Re-derived each batch (frozen candidates minus DB terminal
+     * events), so pause/resume and job retries can never double-send.
+     *
+     * @return array<int, SubscriberContract>
+     */
+    public function nextBatch(int $size): array
+    {
+        return $this->resolver()->nextBatch($this, $size);
+    }
+
+    public function hasPendingRecipients(): bool
+    {
+        return $this->resolver()->hasPending($this);
     }
 
     public function stats(): array
     {
         $counts = $this->events()
-            ->select('type', DB::raw('count(distinct subscriber_id) as total'))
+            ->select('type', DB::raw('count(distinct subscriber_key) as total'))
             ->groupBy('type')
             ->pluck('total', 'type');
 
@@ -118,6 +134,7 @@ class Sendout extends Model
             'recipients' => $this->recipient_count,
             'sent' => $this->sent_count,
             'failed' => $this->fail_count,
+            'skipped' => $this->skip_count,
             'opens' => $counts[SubscriberEvent::TYPE_OPEN] ?? 0,
             'clicks' => $counts[SubscriberEvent::TYPE_CLICK] ?? 0,
             'bounces' => $counts[SubscriberEvent::TYPE_BOUNCE] ?? 0,

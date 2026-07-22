@@ -2,13 +2,13 @@
 
 namespace Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web;
 
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
+use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
 use Darinlarimore\StatamicEmailSubscribe\Services\SubscriberService;
 use Illuminate\Routing\Controller;
 
 class VerifyController extends Controller
 {
-    public function __invoke(Subscriber $subscriber, SubscriberService $subscribers)
+    public function __invoke(SubscriberContract $subscriber, SubscriberService $subscribers)
     {
         $subscribers->verify($subscriber);
 

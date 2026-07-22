@@ -2,6 +2,14 @@
 
 namespace Darinlarimore\StatamicEmailSubscribe;
 
+use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
+use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
+use Darinlarimore\StatamicEmailSubscribe\Repositories\ContentListRepository;
+use Darinlarimore\StatamicEmailSubscribe\Repositories\ContentSubscriberRepository;
+use Darinlarimore\StatamicEmailSubscribe\Repositories\EloquentListRepository;
+use Darinlarimore\StatamicEmailSubscribe\Repositories\EloquentSubscriberRepository;
+use Darinlarimore\StatamicEmailSubscribe\Support\Diagnostics;
+use Darinlarimore\StatamicEmailSubscribe\Support\Storage;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 use Statamic\Facades\CP\Nav;
@@ -24,9 +32,28 @@ class ServiceProvider extends AddonServiceProvider
         Console\Commands\ImportSubscribers::class,
     ];
 
+    public function register()
+    {
+        parent::register();
+
+        $this->mergeConfigFrom(__DIR__.'/../config/email_subscribe.php', 'email_subscribe');
+
+        Diagnostics::boot();
+
+        $this->app->singleton(SubscriberRepository::class, fn () => $this->driver() === 'database'
+            ? new EloquentSubscriberRepository
+            : new ContentSubscriberRepository);
+
+        $this->app->singleton(ListRepository::class, fn () => $this->driver() === 'database'
+            ? new EloquentListRepository
+            : new ContentListRepository);
+    }
+
     public function bootAddon()
     {
         $this->mergeConfigFrom(__DIR__.'/../config/email_subscribe.php', 'email_subscribe');
+
+        Diagnostics::boot();
 
         // Tracking pixels, one-click unsubscribes, and provider webhooks are
         // hit without a browser session - keep them outside the web group so
@@ -48,8 +75,67 @@ class ServiceProvider extends AddonServiceProvider
             __DIR__.'/../resources/views/emails' => resource_path('views/vendor/email-subscribe/emails'),
         ], 'email-subscribe-views');
 
+        if ($this->driver() === 'content') {
+            Storage::bootStorage();
+            $this->guardContentDriver();
+        }
+
+        $this->bootRouteBindings();
         $this->bootPermissions();
         $this->bootNav();
+    }
+
+    protected function driver(): string
+    {
+        return config('email_subscribe.storage.driver', 'content');
+    }
+
+    /**
+     * The content driver's cross-process safety depends on a shared, lock-capable
+     * cache store when a real queue worker is in play. On the "sync" queue
+     * everything runs in one process, so any cache store is fine.
+     */
+    protected function guardContentDriver(): void
+    {
+        $safeStores = ['redis', 'memcached', 'dynamodb', 'database'];
+        $cacheStore = config('cache.default');
+        $usesWorker = config('queue.default') !== 'sync';
+
+        if ($usesWorker && ! in_array($cacheStore, $safeStores, true)) {
+            Diagnostics::unsafeConfig([
+                'cache_store' => $cacheStore,
+                'queue' => config('queue.default'),
+                'advice' => 'Use a shared, lock-capable cache store (redis/database/memcached) with the content driver and a queue worker, or switch to the database storage driver.',
+            ]);
+        }
+    }
+
+    /**
+     * Subscribers and lists aren't Eloquent models under the content driver, so
+     * bind their route params explicitly. The all-digits branch resolves legacy
+     * integer ids embedded in signed URLs delivered before a content cutover.
+     */
+    protected function bootRouteBindings(): void
+    {
+        Route::bind('subscriber', function ($value) {
+            $repository = $this->app->make(SubscriberRepository::class);
+
+            if (ctype_digit((string) $value) && ($legacy = $repository->findByLegacyId($value))) {
+                return $legacy;
+            }
+
+            return $repository->findByKey((string) $value) ?? abort(404);
+        });
+
+        Route::bind('list', function ($value) {
+            $repository = $this->app->make(ListRepository::class);
+
+            if (ctype_digit((string) $value) && ($legacy = $repository->findByLegacyId($value))) {
+                return $legacy;
+            }
+
+            return $repository->find((string) $value) ?? abort(404);
+        });
     }
 
     protected function bootPermissions()

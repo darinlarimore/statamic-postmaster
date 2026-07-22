@@ -2,20 +2,31 @@
 
 namespace Darinlarimore\StatamicEmailSubscribe\Services;
 
+use Darinlarimore\StatamicEmailSubscribe\Contracts\ListContract;
+use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
+use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
+use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
 use Darinlarimore\StatamicEmailSubscribe\Mail\VerifyMail;
-use Darinlarimore\StatamicEmailSubscribe\Models\MailingList;
 use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
 use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
 use Darinlarimore\StatamicEmailSubscribe\Models\SubscriberEvent;
+use Darinlarimore\StatamicEmailSubscribe\Records\SubscriberRecord;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 
 class SubscriberService
 {
+    public function __construct(
+        protected SubscriberRepository $subscribers,
+        protected ListRepository $lists,
+    ) {}
+
     /**
-     * Subscribe an email address to one or more lists. Returns the
-     * subscriber; their status tells you whether they're live or awaiting
-     * double opt-in verification.
+     * Subscribe an email address to one or more lists. Returns the subscriber;
+     * their status tells you whether they're live or awaiting double opt-in.
+     *
+     * @param  Collection<int, ListContract|string>|array<int, ListContract|string>  $lists
+     * @param  array<string, mixed>  $data
      */
     public function subscribe(
         string $email,
@@ -23,123 +34,264 @@ class SubscriberService
         array $data = [],
         string $source = 'form',
         ?string $ip = null,
-    ): Subscriber {
+    ): SubscriberContract {
         $lists = collect($lists)
-            ->map(fn ($list) => $list instanceof MailingList ? $list : MailingList::where('handle', $list)->firstOrFail());
+            ->map(fn ($list): ListContract => $list instanceof ListContract
+                ? $list
+                : $this->requireList($list));
 
-        $subscriber = Subscriber::firstOrNew(['email' => strtolower($email)]);
+        $record = $this->toRecord($this->subscribers->findByEmail($email))
+            ?? new SubscriberRecord(
+                routeKey: $this->subscribers->keyForEmail($email),
+                email: strtolower(trim($email)),
+                status: Subscriber::STATUS_PENDING,
+                source: $source,
+                subscribe_ip: $ip,
+                exists: false,
+            );
 
-        $subscriber->fill(array_filter([
-            'first_name' => $data['first_name'] ?? null,
-            'last_name' => $data['last_name'] ?? null,
-            'fields' => array_diff_key($data, array_flip(['first_name', 'last_name'])) ?: null,
-        ]));
+        $record->first_name = $data['first_name'] ?? $record->first_name;
+        $record->last_name = $data['last_name'] ?? $record->last_name;
+        $customFields = array_diff_key($data, array_flip(['first_name', 'last_name']));
 
-        if (! $subscriber->exists) {
-            $subscriber->status = Subscriber::STATUS_PENDING;
-            $subscriber->source = $source;
-            $subscriber->subscribe_ip = $ip;
+        if ($customFields !== []) {
+            $record->fields = $customFields;
         }
 
         // A returning unsubscriber who signs up again gets a clean slate;
         // bounced/complained addresses stay suppressed.
-        if ($subscriber->status === Subscriber::STATUS_UNSUBSCRIBED) {
-            $subscriber->status = Subscriber::STATUS_PENDING;
-            $subscriber->unsubscribed_at = null;
-            $subscriber->verified_at = null;
+        if ($record->status === Subscriber::STATUS_UNSUBSCRIBED) {
+            $record->status = Subscriber::STATUS_PENDING;
+            $record->unsubscribed_at = null;
+            $record->verified_at = null;
         }
 
-        $subscriber->save();
+        $saved = $this->subscribers->upsert($record);
+        $key = $saved->getKey();
 
         foreach ($lists as $list) {
-            $subscriber->lists()->syncWithoutDetaching([
-                $list->id => ['subscribed_at' => now(), 'unsubscribed_at' => null],
-            ]);
-            // Re-subscribing to a list they'd left: clear the pivot flag.
-            $subscriber->lists()->updateExistingPivot($list->id, [
-                'subscribed_at' => now(),
-                'unsubscribed_at' => null,
-            ]);
+            $this->subscribers->setMembership($key, $list->getKey(), now(), null);
         }
 
-        $needsVerification = $lists->contains(fn ($list) => $list->usesDoubleOptIn());
+        $needsVerification = $lists->contains(fn (ListContract $list): bool => $list->usesDoubleOptIn());
 
-        if ($subscriber->status === Subscriber::STATUS_PENDING) {
-            if ($needsVerification && ! $subscriber->verified_at) {
+        if ($record->status === Subscriber::STATUS_PENDING) {
+            if ($needsVerification && ! $record->verified_at) {
                 Mail::mailer(config('email_subscribe.mailer'))
-                    ->to($subscriber->email)
-                    ->send(new VerifyMail($subscriber));
+                    ->to($saved->email)
+                    ->send(new VerifyMail($saved));
             } else {
-                $subscriber->markSubscribed();
+                $saved = $this->markStatus($key, Subscriber::STATUS_SUBSCRIBED);
             }
         }
 
-        return $subscriber;
+        return $saved;
     }
 
-    public function verify(Subscriber $subscriber): void
+    /**
+     * Update a subscriber's profile fields (name), leaving status/memberships
+     * untouched.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function updateProfile(SubscriberContract $subscriber, array $data): SubscriberContract
     {
-        if (in_array($subscriber->status, [Subscriber::STATUS_PENDING, Subscriber::STATUS_UNSUBSCRIBED])) {
-            $subscriber->markSubscribed();
+        $record = $this->toRecord($subscriber);
+
+        if (! $record) {
+            return $subscriber;
+        }
+
+        if (($data['first_name'] ?? null) !== null) {
+            $record->first_name = $data['first_name'];
+        }
+
+        if (($data['last_name'] ?? null) !== null) {
+            $record->last_name = $data['last_name'];
+        }
+
+        return $this->subscribers->upsert($record);
+    }
+
+    /**
+     * Re-read a subscriber from storage so membership reflects the latest write.
+     */
+    public function refresh(SubscriberContract $subscriber): SubscriberContract
+    {
+        return $this->subscribers->findByKey($subscriber->getKey()) ?? $subscriber;
+    }
+
+    public function verify(SubscriberContract $subscriber): void
+    {
+        if (in_array($subscriber->status, [Subscriber::STATUS_PENDING, Subscriber::STATUS_UNSUBSCRIBED], true)) {
+            $this->markStatus($subscriber->getKey(), Subscriber::STATUS_SUBSCRIBED);
         }
     }
 
     /**
-     * Unsubscribe from specific lists (e.g. the lists a sendout went to),
-     * or from everything when no context is given.
+     * Unsubscribe from specific lists (e.g. the lists a sendout went to), or
+     * from everything when no context is given.
      */
-    public function unsubscribe(Subscriber $subscriber, ?Sendout $sendout = null): void
+    public function unsubscribe(SubscriberContract $subscriber, ?Sendout $sendout = null): void
     {
-        $listIds = $sendout?->list_ids;
+        $key = $subscriber->getKey();
+        $listKeys = $sendout?->list_ids ?? [];
 
-        if ($listIds) {
-            foreach ($listIds as $listId) {
-                $subscriber->lists()->updateExistingPivot($listId, ['unsubscribed_at' => now()]);
+        if ($listKeys !== []) {
+            foreach ($listKeys as $listKey) {
+                $this->subscribers->setMembership($key, (string) $listKey, null, now());
             }
 
-            // Off their last list? Treat it as a full unsubscribe.
-            $remaining = $subscriber->lists()->wherePivotNull('unsubscribed_at')->count();
-
-            if ($remaining === 0) {
-                $subscriber->markUnsubscribed();
+            if ($this->subscribers->activeListKeys($key) === []) {
+                $this->markStatus($key, Subscriber::STATUS_UNSUBSCRIBED);
             }
         } else {
-            $subscriber->lists()->newPivotStatement()
-                ->where('subscriber_id', $subscriber->id)
-                ->whereNull('unsubscribed_at')
-                ->update(['unsubscribed_at' => now()]);
+            foreach ($this->subscribers->activeListKeys($key) as $listKey) {
+                $this->subscribers->setMembership($key, $listKey, null, now());
+            }
 
-            $subscriber->markUnsubscribed();
+            $this->markStatus($key, Subscriber::STATUS_UNSUBSCRIBED);
         }
 
-        $subscriber->events()->create([
+        SubscriberEvent::create([
             'type' => SubscriberEvent::TYPE_UNSUBSCRIBE,
             'sendout_id' => $sendout?->id,
+            'subscriber_key' => $key,
         ]);
     }
 
     /**
-     * Preference-center update: set exactly these lists as active.
+     * Preference-center update: set exactly these list handles as active.
+     *
+     * @param  array<int, string>  $listKeys
      */
-    public function updateListMemberships(Subscriber $subscriber, array $listIds): void
+    public function updateListMemberships(SubscriberContract $subscriber, array $listKeys): void
     {
-        foreach ($subscriber->lists as $list) {
-            $active = in_array($list->id, $listIds);
+        $key = $subscriber->getKey();
+        $active = $this->subscribers->activeListKeys($key);
 
-            $subscriber->lists()->updateExistingPivot($list->id, [
-                'unsubscribed_at' => $active ? null : ($list->pivot->unsubscribed_at ?? now()),
-                'subscribed_at' => $active ? ($list->pivot->subscribed_at ?? now()) : $list->pivot->subscribed_at,
-            ]);
+        // Leave the lists they deselected.
+        foreach ($active as $listKey) {
+            if (! in_array($listKey, $listKeys, true)) {
+                $this->subscribers->setMembership($key, $listKey, null, now());
+            }
         }
 
-        $current = $subscriber->lists()->pluck('email_subscribe_lists.id')->all();
-
-        foreach (array_diff($listIds, $current) as $newListId) {
-            $subscriber->lists()->attach($newListId, ['subscribed_at' => now()]);
+        // Join (or rejoin) the lists they selected.
+        foreach ($listKeys as $listKey) {
+            $this->subscribers->setMembership($key, (string) $listKey, now(), null);
         }
 
-        if ($subscriber->status === Subscriber::STATUS_UNSUBSCRIBED && $listIds !== []) {
-            $subscriber->markSubscribed();
+        if ($subscriber->status === Subscriber::STATUS_UNSUBSCRIBED && $listKeys !== []) {
+            $this->markStatus($key, Subscriber::STATUS_SUBSCRIBED);
         }
+    }
+
+    /**
+     * Suppress a bounced address: flip its status and record a bounce event
+     * (keyed by subscriber_key so mid-send suppression and stats see it).
+     */
+    public function markBounced(SubscriberContract $subscriber, ?string $detail = null): void
+    {
+        $this->markSuppressed($subscriber, Subscriber::STATUS_BOUNCED, SubscriberEvent::TYPE_BOUNCE, $detail);
+    }
+
+    /**
+     * Suppress a complained address (spam report).
+     */
+    public function markComplained(SubscriberContract $subscriber, ?string $detail = null): void
+    {
+        $this->markSuppressed($subscriber, Subscriber::STATUS_COMPLAINED, SubscriberEvent::TYPE_COMPLAINT, $detail);
+    }
+
+    protected function markSuppressed(SubscriberContract $subscriber, string $status, string $eventType, ?string $detail): void
+    {
+        $key = $subscriber->getKey();
+        $record = $this->toRecord($this->subscribers->findByKey($key) ?? $subscriber);
+
+        if ($record) {
+            $record->status = $status;
+
+            if ($status === Subscriber::STATUS_BOUNCED) {
+                $record->bounced_at = now();
+            }
+
+            if ($status === Subscriber::STATUS_COMPLAINED) {
+                $record->complained_at = now();
+            }
+
+            $this->subscribers->upsert($record);
+        }
+
+        SubscriberEvent::create([
+            'type' => $eventType,
+            'subscriber_key' => $key,
+            'detail' => $detail,
+        ]);
+    }
+
+    protected function markStatus(string $key, string $status): SubscriberContract
+    {
+        $record = $this->toRecord($this->subscribers->findByKey($key));
+
+        if (! $record) {
+            throw new \RuntimeException("Subscriber [{$key}] not found.");
+        }
+
+        $record->status = $status;
+
+        if ($status === Subscriber::STATUS_SUBSCRIBED) {
+            $record->verified_at = $record->verified_at ?? now();
+            $record->unsubscribed_at = null;
+        }
+
+        if ($status === Subscriber::STATUS_UNSUBSCRIBED) {
+            $record->unsubscribed_at = now();
+        }
+
+        return $this->subscribers->upsert($record);
+    }
+
+    protected function requireList(string $handle): ListContract
+    {
+        $list = $this->lists->findByHandle($handle);
+
+        if (! $list) {
+            abort(422, "Unknown mailing list [{$handle}].");
+        }
+
+        return $list;
+    }
+
+    /**
+     * Normalise whatever the repository returned into a mutable SubscriberRecord.
+     */
+    protected function toRecord(?SubscriberContract $subscriber): ?SubscriberRecord
+    {
+        if ($subscriber === null) {
+            return null;
+        }
+
+        if ($subscriber instanceof SubscriberRecord) {
+            return $subscriber;
+        }
+
+        /** @var Subscriber $subscriber */
+        return new SubscriberRecord(
+            routeKey: $subscriber->getKey(),
+            email: $subscriber->email,
+            first_name: $subscriber->first_name,
+            last_name: $subscriber->last_name,
+            status: $subscriber->status,
+            fields: $subscriber->fields ?: [],
+            verified_at: $subscriber->verified_at,
+            unsubscribed_at: $subscriber->unsubscribed_at,
+            bounced_at: $subscriber->bounced_at,
+            complained_at: $subscriber->complained_at,
+            source: $subscriber->source,
+            subscribe_ip: $subscriber->subscribe_ip,
+            legacy_id: (int) $subscriber->getKey(),
+            exists: true,
+        );
     }
 }

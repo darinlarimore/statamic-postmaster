@@ -2,8 +2,12 @@
 
 namespace Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Cp;
 
-use Darinlarimore\StatamicEmailSubscribe\Models\MailingList;
+use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
+use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
+use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
 use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
+use Darinlarimore\StatamicEmailSubscribe\Models\SubscriberEvent;
+use Darinlarimore\StatamicEmailSubscribe\Records\SubscriberRecord;
 use Illuminate\Http\Request;
 use Statamic\Http\Controllers\CP\CpController;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -12,28 +16,17 @@ class SubscribersController extends CpController
 {
     public function index(Request $request)
     {
-        $query = Subscriber::query()->with('lists');
-
-        if ($search = $request->query('search')) {
-            $query->where(function ($inner) use ($search) {
-                $inner->where('email', 'like', "%{$search}%")
-                    ->orWhere('first_name', 'like', "%{$search}%")
-                    ->orWhere('last_name', 'like', "%{$search}%");
-            });
-        }
-
-        if ($status = $request->query('status')) {
-            $query->where('status', $status);
-        }
-
-        if ($listId = $request->query('list')) {
-            $query->whereHas('lists', fn ($inner) => $inner->where('email_subscribe_lists.id', $listId));
-        }
+        $subscribers = app(SubscriberRepository::class)->query([
+            'search' => $request->query('search'),
+            'status' => $request->query('status'),
+            'list' => $request->query('list'),
+            'per_page' => 50,
+        ])->withQueryString();
 
         return view('email-subscribe::cp.subscribers', [
             'title' => 'Subscribers',
-            'subscribers' => $query->latest()->paginate(50)->withQueryString(),
-            'lists' => MailingList::orderBy('title')->get(),
+            'subscribers' => $subscribers,
+            'lists' => app(ListRepository::class)->all(),
             'statuses' => [
                 Subscriber::STATUS_SUBSCRIBED,
                 Subscriber::STATUS_PENDING,
@@ -44,18 +37,23 @@ class SubscribersController extends CpController
         ]);
     }
 
-    public function show(Subscriber $subscriber)
+    public function show(SubscriberContract $subscriber)
     {
         return view('email-subscribe::cp.subscriber', [
             'title' => $subscriber->email,
-            'subscriber' => $subscriber->load('lists'),
-            'events' => $subscriber->events()->with('sendout')->latest()->limit(100)->get(),
+            'subscriber' => $subscriber,
+            'events' => SubscriberEvent::query()
+                ->where('subscriber_key', $subscriber->getKey())
+                ->with('sendout')
+                ->latest()
+                ->limit(100)
+                ->get(),
         ]);
     }
 
-    public function destroy(Subscriber $subscriber)
+    public function destroy(SubscriberContract $subscriber)
     {
-        $subscriber->delete();
+        app(SubscriberRepository::class)->delete($subscriber->getKey());
 
         return redirect(cp_route('email-subscribe.subscribers.index'))
             ->with('success', __('Subscriber deleted'));
@@ -63,28 +61,36 @@ class SubscribersController extends CpController
 
     public function export(Request $request): StreamedResponse
     {
-        $query = Subscriber::query()->with('lists');
+        $status = $request->query('status');
+        $repository = app(SubscriberRepository::class);
+        $lists = app(ListRepository::class)->all();
 
-        if ($status = $request->query('status')) {
-            $query->where('status', $status);
-        }
-
-        return response()->streamDownload(function () use ($query) {
+        return response()->streamDownload(function () use ($repository, $lists, $status): void {
             $out = fopen('php://output', 'w');
             fputcsv($out, ['email', 'first_name', 'last_name', 'status', 'lists', 'created_at']);
 
-            $query->chunk(500, function ($subscribers) use ($out) {
-                foreach ($subscribers as $subscriber) {
+            foreach ($lists as $list) {
+                foreach ($repository->allForList($list->getKey()) as $subscriber) {
+                    // Filtering by status here would exclude non-subscribed
+                    // members entirely; export() streams active list members.
+                    if ($status && $subscriber->status !== $status) {
+                        continue;
+                    }
+
+                    $handles = $subscriber instanceof SubscriberRecord
+                        ? implode('|', $subscriber->activeListHandles())
+                        : $subscriber->lists->pluck('handle')->implode('|');
+
                     fputcsv($out, [
                         $subscriber->email,
                         $subscriber->first_name,
                         $subscriber->last_name,
                         $subscriber->status,
-                        $subscriber->lists->pluck('handle')->implode('|'),
+                        $handles,
                         $subscriber->created_at?->toDateTimeString(),
                     ]);
                 }
-            });
+            }
 
             fclose($out);
         }, 'subscribers.csv', ['Content-Type' => 'text/csv']);

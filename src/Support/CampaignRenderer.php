@@ -2,9 +2,9 @@
 
 namespace Darinlarimore\StatamicEmailSubscribe\Support;
 
+use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
 use Darinlarimore\StatamicEmailSubscribe\Models\Link;
 use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
 
 /**
  * Renders a sendout's email HTML.
@@ -71,7 +71,7 @@ class CampaignRenderer
     /**
      * Swap sentinel tokens for a real recipient's values.
      */
-    public function personalize(string $html, Sendout $sendout, Subscriber $subscriber, bool $tracking = true): string
+    public function personalize(string $html, Sendout $sendout, SubscriberContract $subscriber, bool $tracking = true): string
     {
         $pixel = $tracking && config('email_subscribe.tracking.opens', true)
             ? '<img src="'.e(Urls::open($sendout, $subscriber)).'" width="1" height="1" alt="" style="display:none;" />'

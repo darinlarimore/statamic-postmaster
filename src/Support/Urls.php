@@ -2,8 +2,8 @@
 
 namespace Darinlarimore\StatamicEmailSubscribe\Support;
 
+use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
 use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
 use Illuminate\Support\Facades\URL;
 
 /**
@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\URL;
  */
 class Urls
 {
-    public static function verify(Subscriber $subscriber): string
+    public static function verify(SubscriberContract $subscriber): string
     {
         return URL::temporarySignedRoute(
             'email-subscribe.verify',
@@ -22,7 +22,7 @@ class Urls
         );
     }
 
-    public static function unsubscribe(Subscriber $subscriber, ?Sendout $sendout = null): string
+    public static function unsubscribe(SubscriberContract $subscriber, ?Sendout $sendout = null): string
     {
         return URL::signedRoute('email-subscribe.unsubscribe', array_filter([
             'subscriber' => $subscriber->id,
@@ -30,7 +30,7 @@ class Urls
         ]));
     }
 
-    public static function oneClickUnsubscribe(Subscriber $subscriber, ?Sendout $sendout = null): string
+    public static function oneClickUnsubscribe(SubscriberContract $subscriber, ?Sendout $sendout = null): string
     {
         return URL::signedRoute('email-subscribe.unsubscribe.one-click', array_filter([
             'subscriber' => $subscriber->id,
@@ -38,12 +38,12 @@ class Urls
         ]));
     }
 
-    public static function preferences(Subscriber $subscriber): string
+    public static function preferences(SubscriberContract $subscriber): string
     {
         return URL::signedRoute('email-subscribe.preferences', ['subscriber' => $subscriber->id]);
     }
 
-    public static function open(Sendout $sendout, Subscriber $subscriber): string
+    public static function open(Sendout $sendout, SubscriberContract $subscriber): string
     {
         return URL::signedRoute('email-subscribe.track.open', [
             'sendout' => $sendout->id,
@@ -51,7 +51,7 @@ class Urls
         ]);
     }
 
-    public static function click(int $linkId, Subscriber $subscriber): string
+    public static function click(int $linkId, SubscriberContract $subscriber): string
     {
         return URL::signedRoute('email-subscribe.track.click', [
             'link' => $linkId,

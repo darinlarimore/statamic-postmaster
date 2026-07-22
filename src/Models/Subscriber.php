@@ -2,11 +2,12 @@
 
 namespace Darinlarimore\StatamicEmailSubscribe\Models;
 
+use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Subscriber extends Model
+class Subscriber extends Model implements SubscriberContract
 {
     const STATUS_PENDING = 'pending';
 
@@ -50,6 +51,11 @@ class Subscriber extends Model
     public function isSendable(): bool
     {
         return $this->status === self::STATUS_SUBSCRIBED;
+    }
+
+    public function getKey(): string
+    {
+        return (string) $this->getAttribute($this->getKeyName());
     }
 
     public function markSubscribed(): void

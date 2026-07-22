@@ -2,8 +2,8 @@
 
 namespace Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web;
 
+use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
 use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
 use Darinlarimore\StatamicEmailSubscribe\Services\SubscriberService;
 use Darinlarimore\StatamicEmailSubscribe\Support\Urls;
 use Illuminate\Http\Request;
@@ -11,7 +11,7 @@ use Illuminate\Routing\Controller;
 
 class UnsubscribeController extends Controller
 {
-    public function unsubscribe(Request $request, Subscriber $subscriber, SubscriberService $subscribers)
+    public function unsubscribe(Request $request, SubscriberContract $subscriber, SubscriberService $subscribers)
     {
         $sendout = $request->query('sendout') ? Sendout::find($request->query('sendout')) : null;
 
@@ -31,7 +31,7 @@ class UnsubscribeController extends Controller
      * RFC 8058 one-click unsubscribe (POSTed by the mail client, no body
      * rendered to a human).
      */
-    public function oneClick(Request $request, Subscriber $subscriber, SubscriberService $subscribers)
+    public function oneClick(Request $request, SubscriberContract $subscriber, SubscriberService $subscribers)
     {
         $sendout = $request->query('sendout') ? Sendout::find($request->query('sendout')) : null;
 

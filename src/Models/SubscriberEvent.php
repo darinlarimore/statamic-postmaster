@@ -21,6 +21,8 @@ class SubscriberEvent extends Model
 
     const TYPE_FAILED = 'failed';
 
+    const TYPE_SKIPPED = 'skipped';
+
     protected $table = 'email_subscribe_events';
 
     protected $guarded = [];
@@ -30,6 +32,10 @@ class SubscriberEvent extends Model
         return $this->belongsTo(Sendout::class, 'sendout_id');
     }
 
+    /**
+     * Only meaningful under the database driver; content-driver events are keyed
+     * by subscriber_key instead.
+     */
     public function subscriber(): BelongsTo
     {
         return $this->belongsTo(Subscriber::class, 'subscriber_id');

@@ -2,10 +2,11 @@
 
 namespace Darinlarimore\StatamicEmailSubscribe\Models;
 
+use Darinlarimore\StatamicEmailSubscribe\Contracts\ListContract;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class MailingList extends Model
+class MailingList extends Model implements ListContract
 {
     protected $table = 'email_subscribe_lists';
 
@@ -32,5 +33,10 @@ class MailingList extends Model
     public function usesDoubleOptIn(): bool
     {
         return $this->double_opt_in ?? config('email_subscribe.double_opt_in', true);
+    }
+
+    public function getKey(): string
+    {
+        return (string) $this->getAttribute($this->getKeyName());
     }
 }
