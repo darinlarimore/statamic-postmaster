@@ -48,6 +48,42 @@ class EmailSubscribeTag extends Tags
     }
 
     /**
+     * {{ email_subscribe:unsubscribe_form }} ... {{ /email_subscribe:unsubscribe_form }}
+     *
+     * Renders a form where a visitor enters their email to receive a
+     * signed unsubscribe link. Nothing is revealed about whether the
+     * address is subscribed, and nobody can unsubscribe an address they
+     * don't control.
+     */
+    public function unsubscribeForm()
+    {
+        $attributes = collect([
+            'class' => $this->params->get('class'),
+            'id' => $this->params->get('id'),
+        ])
+            ->filter()
+            ->map(fn ($value, $attribute) => $attribute.'="'.e($value).'"')
+            ->implode(' ');
+
+        $html = '<form method="POST" action="'.route('email-subscribe.unsubscribe.request').'" '.$attributes.'>';
+        $html .= csrf_field();
+        $html .= '<input type="text" name="es_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;" aria-hidden="true">';
+
+        if ($redirect = $this->params->get('redirect')) {
+            $html .= '<input type="hidden" name="_redirect" value="'.e($redirect).'">';
+        }
+
+        $html .= $this->parse([
+            'success' => session('email_subscribe.success'),
+            'errors' => session()->get('errors')?->getBag('default')->all() ?? [],
+        ]);
+
+        $html .= '</form>';
+
+        return $html;
+    }
+
+    /**
      * {{ email_subscribe:success }} - flash message after subscribing.
      */
     public function success()

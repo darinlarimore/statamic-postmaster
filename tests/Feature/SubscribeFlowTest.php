@@ -1,5 +1,6 @@
 <?php
 
+use Darinlarimore\StatamicEmailSubscribe\Mail\UnsubscribeLinkMail;
 use Darinlarimore\StatamicEmailSubscribe\Mail\VerifyMail;
 use Darinlarimore\StatamicEmailSubscribe\Models\MailingList;
 use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
@@ -105,4 +106,24 @@ test('preferences page updates list memberships', function () {
     $fresh = $subscriber->fresh();
     expect($fresh->first_name)->toBe('Jane');
     expect($fresh->lists()->wherePivotNull('unsubscribed_at')->pluck('handle')->all())->toBe(['product']);
+});
+
+test('the unsubscribe form emails a signed link instead of unsubscribing directly', function () {
+    $subscriber = Subscriber::create(['email' => 'jane@example.com', 'status' => Subscriber::STATUS_SUBSCRIBED]);
+    $subscriber->lists()->attach($this->list->id, ['subscribed_at' => now()]);
+
+    $this->post(route('email-subscribe.unsubscribe.request'), ['email' => 'jane@example.com'])
+        ->assertRedirect();
+
+    // Still subscribed until they click the emailed link.
+    expect($subscriber->fresh()->status)->toBe(Subscriber::STATUS_SUBSCRIBED);
+    Mail::assertSent(UnsubscribeLinkMail::class, fn ($mail) => $mail->hasTo('jane@example.com'));
+});
+
+test('the unsubscribe form responds identically for unknown addresses and sends nothing', function () {
+    $this->post(route('email-subscribe.unsubscribe.request'), ['email' => 'stranger@example.com'])
+        ->assertRedirect()
+        ->assertSessionHas('email_subscribe.success');
+
+    Mail::assertNothingSent();
 });

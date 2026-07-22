@@ -11,6 +11,8 @@ Route::prefix(config('email_subscribe.route_prefix', 'email-subscribe'))
     ->group(function () {
         Route::post('subscribe', [SubscribeController::class, 'store'])->name('subscribe');
 
+        Route::post('unsubscribe', [UnsubscribeController::class, 'request'])->name('unsubscribe.request');
+
         Route::get('verify/{subscriber}', VerifyController::class)
             ->middleware('signed')
             ->name('verify');
