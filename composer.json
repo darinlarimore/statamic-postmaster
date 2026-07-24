@@ -1,5 +1,9 @@
 {
     "name": "darinlarimore/statamic-email-subscribe",
+    "description": "Newsletter subscriptions, MJML campaigns, and queued sendouts for Statamic",
+    "type": "statamic-addon",
+    "license": "proprietary",
+    "keywords": ["statamic", "statamic-addon", "newsletter", "email", "mjml", "campaigns"],
     "autoload": {
         "psr-4": {
             "Darinlarimore\\StatamicEmailSubscribe\\": "src"
