@@ -55,6 +55,12 @@ class CampaignRenderer
             'full_name' => self::TOKEN_FULL_NAME,
             'unsubscribe_url' => self::TOKEN_UNSUBSCRIBE_URL,
             'preferences_url' => self::TOKEN_PREFERENCES_URL,
+            // Emails need absolute URLs for images/links, and Statamic's
+            // site:url can be relative - so pass the app's absolute base and
+            // the current year for templates to use.
+            'site_url' => rtrim(config('app.url'), '/').'/',
+            'site_name' => config('app.name'),
+            'year' => date('Y'),
         ])->render();
 
         $html = MergeTags::convert($html);

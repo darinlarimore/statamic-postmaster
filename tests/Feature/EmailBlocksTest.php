@@ -169,6 +169,20 @@ test('the default template renders blocks or classic content, and overrides win'
     expect($renderer->render(makeBlocksSendout($overrideEntry)))->toContain('<h1>Override Issue</h1>');
 });
 
+test('templates receive an absolute site_url and the current year', function () {
+    config()->set('app.url', 'https://mysite.test');
+    config()->set('app.name', 'My Site');
+
+    $entry = makeBlocksEntry([], 'urls');
+    $entry->set('email_template', 'test-campaign')->save();
+
+    $html = app(CampaignRenderer::class)->render(makeBlocksSendout($entry));
+
+    // Absolute URL for images (Statamic's site:url can be relative).
+    expect($html)->toContain('src="https://mysite.test/logo.png"');
+    expect($html)->toContain('&copy; My Site '.date('Y'));
+});
+
 test('the entry live-preview route renders the email with sample data', function () {
     $this->actingAs(tap(User::make()->makeSuper()->email('previewer@example.com'))->save());
 
