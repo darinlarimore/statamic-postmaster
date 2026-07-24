@@ -21,18 +21,18 @@ Route::name('email-subscribe.')
 
         Route::middleware('can:edit email subscribe subscribers')->group(function () {
             Route::get('subscribers', [SubscribersController::class, 'index'])->name('subscribers.index');
+            Route::post('subscribers', [SubscribersController::class, 'store'])->name('subscribers.store');
+            Route::post('subscribers/import', [SubscribersController::class, 'import'])->name('subscribers.import');
+            Route::get('subscribers/import-template', [SubscribersController::class, 'importTemplate'])->name('subscribers.import-template');
             Route::get('subscribers/export', [SubscribersController::class, 'export'])->name('subscribers.export');
             Route::get('subscribers/{subscriber}', [SubscribersController::class, 'show'])->name('subscribers.show');
+            Route::post('subscribers/{subscriber}', [SubscribersController::class, 'update'])->name('subscribers.update');
             Route::delete('subscribers/{subscriber}', [SubscribersController::class, 'destroy'])->name('subscribers.destroy');
         });
 
         Route::middleware('can:send email subscribe sendouts')->group(function () {
             Route::get('sendouts', [SendoutsController::class, 'index'])->name('sendouts.index');
-            Route::get('sendouts/create', [SendoutsController::class, 'create'])->name('sendouts.create');
-            Route::post('sendouts', [SendoutsController::class, 'store'])->name('sendouts.store');
             Route::get('sendouts/{sendout}', [SendoutsController::class, 'show'])->name('sendouts.show');
-            Route::get('sendouts/{sendout}/edit', [SendoutsController::class, 'edit'])->name('sendouts.edit');
-            Route::post('sendouts/{sendout}', [SendoutsController::class, 'update'])->name('sendouts.update');
             Route::delete('sendouts/{sendout}', [SendoutsController::class, 'destroy'])->name('sendouts.destroy');
             Route::get('sendouts/{sendout}/preview', [SendoutsController::class, 'preview'])->name('sendouts.preview');
             Route::post('sendouts/{sendout}/test', [SendoutsController::class, 'sendTest'])->name('sendouts.test');

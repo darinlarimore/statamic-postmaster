@@ -33,7 +33,12 @@ class Storage
                 ->save();
         }
 
-        if (Blueprint::find('collections.'.$handle.'.'.$handle)) {
+        static::ensureSeoExclusion(Collection::findByHandle($handle));
+        static::ensureTitleFormat(Collection::findByHandle($handle));
+
+        if ($blueprint = Blueprint::find('collections.'.$handle.'.'.$handle)) {
+            static::healLegacyBagFields($blueprint);
+
             return;
         }
 
@@ -62,8 +67,6 @@ class Storage
                                             'complained' => 'Complained',
                                         ],
                                     ]],
-                                    ['handle' => 'lists', 'field' => ['type' => 'array', 'display' => 'List Memberships']],
-                                    ['handle' => 'fields', 'field' => ['type' => 'array', 'display' => 'Custom Fields']],
                                     ['handle' => 'verified_at', 'field' => ['type' => 'text', 'display' => 'Verified At']],
                                     ['handle' => 'unsubscribed_at', 'field' => ['type' => 'text', 'display' => 'Unsubscribed At']],
                                     ['handle' => 'bounced_at', 'field' => ['type' => 'text', 'display' => 'Bounced At']],
@@ -80,6 +83,50 @@ class Storage
             ->save();
     }
 
+    /**
+     * Early blueprints exposed the raw lists/fields storage bags as blueprint
+     * fields, and runtime-ensured fields (active_lists, activity_history) can
+     * crystallize into the file when the blueprint is saved for any reason.
+     * None of them belong in the file: the bags are machinery, and the
+     * ensured fields are injected fresh per request with per-entry state.
+     * Entry data is untouched.
+     */
+    protected static function healLegacyBagFields($blueprint): void
+    {
+        $contents = $blueprint->contents();
+        $fields = collect($contents['tabs']['main']['sections'][0]['fields'] ?? []);
+
+        $kept = $fields->reject(fn (array $field) => in_array($field['handle'] ?? null, ['lists', 'fields', 'active_lists', 'activity_history']));
+
+        if ($kept->count() !== $fields->count()) {
+            $contents['tabs']['main']['sections'][0]['fields'] = $kept->values()->all();
+            $blueprint->setContents($contents)->save();
+        }
+    }
+
+    /**
+     * Subscriber entries are keyed by sha1(email), so without this the CP
+     * shows blank titles everywhere. The title format auto-generates the
+     * title from the email and hides the Title input on the publish form.
+     */
+    protected static function ensureTitleFormat($collection): void
+    {
+        if (! $collection->autoGeneratesTitles()) {
+            $collection->titleFormats('{email}')->save();
+        }
+    }
+
+    /**
+     * Subscribers and lists are storage, not web pages - keep SEO addons
+     * from decorating them with SEO tabs. Deliberate per-site settings win.
+     */
+    protected static function ensureSeoExclusion($collection): void
+    {
+        if (! $collection->cascade()->has('seo')) {
+            $collection->cascade($collection->cascade()->put('seo', false)->all())->save();
+        }
+    }
+
     protected static function ensureLists(): void
     {
         $handle = config('email_subscribe.storage.collections.lists', 'email_lists');
@@ -91,6 +138,8 @@ class Storage
                 ->revisionsEnabled(false)
                 ->save();
         }
+
+        static::ensureSeoExclusion(Collection::findByHandle($handle));
 
         if (Blueprint::find('collections.'.$handle.'.'.$handle)) {
             return;

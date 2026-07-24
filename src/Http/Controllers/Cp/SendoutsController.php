@@ -2,13 +2,14 @@
 
 namespace Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Cp;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
 use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
 use Darinlarimore\StatamicEmailSubscribe\Services\SendoutService;
 use Darinlarimore\StatamicEmailSubscribe\Support\CampaignRenderer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Statamic\Contracts\Entries\Entry;
 use Statamic\Facades\Collection;
+use Statamic\Facades\Site;
 use Statamic\Http\Controllers\CP\CpController;
 
 class SendoutsController extends CpController
@@ -18,26 +19,48 @@ class SendoutsController extends CpController
         return view('email-subscribe::cp.sendouts', [
             'title' => 'Sendouts',
             'sendouts' => Sendout::latest()->paginate(25),
+            'pendingEntries' => $this->entriesAwaitingSendout(),
+            'createEntryUrls' => $this->blocksCollections()
+                ->mapWithKeys(fn ($collection) => [
+                    $collection->title() => cp_route('collections.entries.create', [
+                        $collection->handle(),
+                        Site::selected()->handle(),
+                    ]),
+                ])
+                ->all(),
         ]);
     }
 
-    public function create()
+    /**
+     * Collections whose entries are newsletters - any blueprint carrying the
+     * Email Blocks field.
+     *
+     * @return \Illuminate\Support\Collection<int, \Statamic\Entries\Collection>
+     */
+    protected function blocksCollections()
     {
-        return view('email-subscribe::cp.sendout-form', [
-            'title' => 'Create Sendout',
-            'sendout' => new Sendout(['list_ids' => []]),
-            'lists' => app(ListRepository::class)->all(),
-            'collections' => Collection::all(),
-            'action' => cp_route('email-subscribe.sendouts.store'),
-        ]);
+        return Collection::all()
+            ->filter(fn ($collection) => $collection->entryBlueprints()
+                ->some(fn ($blueprint) => $blueprint->hasField(CampaignRenderer::BLOCKS_FIELD)))
+            ->values();
     }
 
-    public function store(Request $request, SendoutService $service)
+    /**
+     * Newsletter entries (any collection whose blueprint carries Email
+     * Blocks) that no sendout references yet, so freshly authored emails are
+     * visible from this screen instead of silently living elsewhere.
+     *
+     * @return \Illuminate\Support\Collection<int, Entry>
+     */
+    protected function entriesAwaitingSendout()
     {
-        $sendout = Sendout::create($this->validated($request) + ['status' => Sendout::STATUS_DRAFT]);
+        $usedEntryIds = Sendout::query()->whereNotNull('entry_id')->pluck('entry_id')->all();
 
-        return redirect(cp_route('email-subscribe.sendouts.show', $sendout->id))
-            ->with('success', __('Sendout created'));
+        return $this->blocksCollections()
+            ->flatMap(fn ($collection) => $collection->queryEntries()->limit(50)->get())
+            ->reject(fn ($entry) => in_array((string) $entry->id(), $usedEntryIds))
+            ->take(10)
+            ->values();
     }
 
     public function show(Sendout $sendout)
@@ -56,29 +79,6 @@ class SendoutsController extends CpController
         ]);
     }
 
-    public function edit(Sendout $sendout)
-    {
-        return view('email-subscribe::cp.sendout-form', [
-            'title' => 'Edit Sendout',
-            'sendout' => $sendout,
-            'lists' => app(ListRepository::class)->all(),
-            'collections' => Collection::all(),
-            'action' => cp_route('email-subscribe.sendouts.update', $sendout->id),
-        ]);
-    }
-
-    public function update(Request $request, Sendout $sendout)
-    {
-        if ($sendout->status !== Sendout::STATUS_DRAFT) {
-            return back()->withErrors(['status' => __('Only draft sendouts can be edited.')]);
-        }
-
-        $sendout->update($this->validated($request));
-
-        return redirect(cp_route('email-subscribe.sendouts.show', $sendout->id))
-            ->with('success', __('Sendout updated'));
-    }
-
     public function destroy(Sendout $sendout)
     {
         if (in_array($sendout->status, [Sendout::STATUS_SENDING, Sendout::STATUS_PENDING])) {
@@ -95,35 +95,32 @@ class SendoutsController extends CpController
     {
         $html = $sendout->html ?: $renderer->render($sendout);
 
-        // Show the preview with sentinel tokens swapped for sample values.
-        $html = strtr($html, [
-            CampaignRenderer::TOKEN_EMAIL => 'subscriber@example.com',
-            CampaignRenderer::TOKEN_FIRST_NAME => 'First',
-            CampaignRenderer::TOKEN_LAST_NAME => 'Last',
-            CampaignRenderer::TOKEN_FULL_NAME => 'First Last',
-            CampaignRenderer::TOKEN_UNSUBSCRIBE_URL => '#',
-            CampaignRenderer::TOKEN_PREFERENCES_URL => '#',
-            CampaignRenderer::TOKEN_OPEN_PIXEL => '',
-        ]);
-
-        $html = preg_replace('/%%es:click:\d+%%/', '#', $html);
-
-        return response($html);
+        return response($renderer->withSampleData($html));
     }
 
     public function sendTest(Request $request, Sendout $sendout, SendoutService $service)
     {
-        $validated = $request->validate(['email' => ['required', 'email']]);
+        $validated = $request->validate(['emails' => ['required', 'string']]);
+
+        $emails = collect(explode(',', $validated['emails']))
+            ->map(fn (string $email) => trim($email))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($emails->isEmpty() || $emails->reject(fn (string $email) => filter_var($email, FILTER_VALIDATE_EMAIL))->isNotEmpty()) {
+            return back()->withErrors(['emails' => __('Enter one or more valid email addresses, comma separated.')]);
+        }
 
         try {
-            $service->sendTest($sendout, $validated['email']);
+            $service->sendTests($sendout, $emails->all());
         } catch (\Throwable $exception) {
             report($exception);
 
-            return back()->withErrors(['email' => __('Test send failed: :message', ['message' => $exception->getMessage()])]);
+            return back()->withErrors(['emails' => __('Test send failed: :message', ['message' => $exception->getMessage()])]);
         }
 
-        return back()->with('success', __('Test email sent to :email', ['email' => $validated['email']]));
+        return back()->with('success', __('Test email sent to :emails', ['emails' => $emails->implode(', ')]));
     }
 
     public function start(Request $request, Sendout $sendout, SendoutService $service)
@@ -165,32 +162,8 @@ class SendoutsController extends CpController
     {
         $service->cancel($sendout);
 
-        return back()->with('success', __('Sendout cancelled'));
-    }
-
-    protected function validated(Request $request): array
-    {
-        $repository = app(ListRepository::class);
-
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'subject' => ['required', 'string', 'max:255'],
-            'preheader' => ['nullable', 'string', 'max:255'],
-            'from_email' => ['nullable', 'email'],
-            'from_name' => ['nullable', 'string', 'max:255'],
-            'reply_to' => ['nullable', 'email'],
-            'entry_id' => ['nullable', 'string'],
-            'template' => ['nullable', 'string', 'max:255'],
-            'list_ids' => ['required', 'array', 'min:1'],
-            'list_ids.*' => ['string', function (string $attribute, mixed $value, callable $fail) use ($repository): void {
-                if (! $repository->find((string) $value)) {
-                    $fail(__('The selected mailing list is invalid.'));
-                }
-            }],
-        ]);
-
-        $validated['list_ids'] = array_map('strval', $validated['list_ids']);
-
-        return $validated;
+        return back()->with('success', $sendout->status === Sendout::STATUS_DRAFT
+            ? __('Sendout cancelled - back to a draft, ready to send again.')
+            : __('Sendout cancelled'));
     }
 }

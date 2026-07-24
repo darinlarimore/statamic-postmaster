@@ -6,6 +6,8 @@ use Darinlarimore\StatamicEmailSubscribe\Contracts\ListContract;
 use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Statamic\Facades\Entry;
+use Statamic\Facades\Site;
 use Statamic\Http\Controllers\CP\CpController;
 
 class ListsController extends CpController
@@ -23,9 +25,22 @@ class ListsController extends CpController
                 return $list;
             });
 
+        $entryEditUrls = config('email_subscribe.storage.driver', 'content') === 'content'
+            ? $lists->mapWithKeys(fn (ListContract $list) => [
+                $list->id => Entry::find($list->getKey())?->editUrl(),
+            ])->filter()->all()
+            : [];
+
         return view('email-subscribe::cp.lists', [
             'title' => 'Mailing Lists',
             'lists' => $lists,
+            'entryEditUrls' => $entryEditUrls,
+            'createEntryUrl' => config('email_subscribe.storage.driver', 'content') === 'content'
+                ? cp_route('collections.entries.create', [
+                    config('email_subscribe.storage.collections.lists', 'email_lists'),
+                    Site::selected()->handle(),
+                ])
+                : null,
         ]);
     }
 

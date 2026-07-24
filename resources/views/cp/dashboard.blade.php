@@ -23,7 +23,7 @@
         <div class="es-card">
             <h2>{{ __('Recent sendouts') }}</h2>
             @if ($recentSendouts->isEmpty())
-                <p class="es-muted">{{ __('No sendouts yet.') }} <a href="{{ cp_route('email-subscribe.sendouts.create') }}">{{ __('Create your first one') }}</a>.</p>
+                <p class="es-muted">{{ __('No sendouts yet.') }} {{ __('Sendouts are created from a newsletter entry - open the entry and choose "Create Sendout" from its actions menu.') }}</p>
             @else
                 <table class="es-table">
                     <thead>
@@ -33,7 +33,7 @@
                         @foreach ($recentSendouts as $sendout)
                             <tr>
                                 <td><a href="{{ cp_route('email-subscribe.sendouts.show', $sendout->id) }}">{{ $sendout->title }}</a></td>
-                                <td><span class="es-badge {{ $sendout->status }}">{{ $sendout->status }}</span></td>
+                                <td><span class="es-badge {{ $sendout->statusBadgeClass() }}">{{ $sendout->statusLabel() }}</span></td>
                                 <td>{{ number_format($sendout->sent_count) }} / {{ number_format($sendout->recipient_count) }}</td>
                                 <td class="es-muted">{{ $sendout->created_at->diffForHumans() }}</td>
                             </tr>

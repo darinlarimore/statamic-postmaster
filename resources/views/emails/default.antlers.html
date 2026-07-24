@@ -10,16 +10,22 @@
     <mj-body background-color="#f4f4f5">
         <mj-section background-color="#ffffff" border-radius="8px" padding="32px 24px">
             <mj-column>
-                <mj-text font-size="22px" font-weight="700" color="#18181b" padding-bottom="8px">
-                    {{ subject }}
-                </mj-text>
+                {{ if entry && entry:email_blocks }}
+                    {{ entry:email_blocks }}
+                        {{ partial src="email-subscribe::emails.blocks.{type}" }}
+                    {{ /entry:email_blocks }}
+                {{ else }}
+                    <mj-text font-size="22px" font-weight="700" color="#18181b" padding-bottom="8px">
+                        {{ subject }}
+                    </mj-text>
 
-                {{ if first_name }}
-                    <mj-text>Hi {{ first_name }},</mj-text>
-                {{ /if }}
+                    {{ if first_name }}
+                        <mj-text>Hi {{ first_name }},</mj-text>
+                    {{ /if }}
 
-                {{ if entry }}
-                    <mj-text>{{ entry:content }}</mj-text>
+                    {{ if entry }}
+                        <mj-text>{{ entry:content }}</mj-text>
+                    {{ /if }}
                 {{ /if }}
             </mj-column>
         </mj-section>

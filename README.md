@@ -1,36 +1,47 @@
-# Statamic Email Subscribe
+# <img src="readmeAssets/icon.svg" height="50" width="50"> Statamic Email Subscribe
 
-> Newsletter subscriptions, MJML campaigns, and queue-powered sendouts — natively in your Statamic control panel.
+> Newsletters, natively in Statamic: build emails from blocks in the entry editor, collect subscribers with double opt-in, and deliver through your own mail provider with tracked, queue-backed sendouts.
 
-Email Subscribe brings the full newsletter workflow to Statamic: collect subscribers with double opt-in, write campaigns as MJML templates fed by your entries, and deliver them through your own mail provider with batched, pausable, queue-backed sendouts. Opens, clicks, bounces, and complaints are tracked and reported per sendout.
+Email Subscribe treats a newsletter like content, because in Statamic it is. You author an email as an entry — stacking heading, text, image, and button blocks with Live Preview of the compiled email — pick recipient lists in the sidebar, and hit Publish when it's approved to send. A sendout record tracks the delivery run: opens, clicks, bounces, complaints, and top links.
 
-Supports **Statamic 5 and 6**.
+Supports **Statamic 5 and 6** with a single codebase.
+
+![The newsletter entry editor — blocks, sender settings, recipient lists, and merge tags](/readmeAssets/entryEditor.png)
 
 ## Features
 
-- 📬 **Mailing lists** — as many as you need, each with its own double opt-in setting
+- 🧱 **Email Blocks builder** — author emails as entries with a replicator of blocks (heading, rich text, image, button, divider, spacer); drag to reorder, toggle blocks off without deleting
+- 👀 **Live Preview** — see the compiled, email-client-safe HTML re-render beside the entry as you type
+- 🏷️ **Merge tags** — `{{ first_name }}`, `{{ email }}`, and any custom subscriber field, typed anywhere in content or subject lines; the editor lists what's available
+- 🤖 **Sendouts create themselves** — saving a newsletter entry creates its draft sendout; publishing marks it ready to send, and a completed send unpublishes the entry again
+- 💌 **MJML under the hood** — one template imports a partial per block type; override any single block, add your own block types, or point an entry at a fully custom template
 - ✅ **Double opt-in** — signed, expiring verification links; pending subscribers never get sendouts
-- 📝 **Campaigns from entries** — point a sendout at any entry and render it through an MJML or HTML template (Antlers or Blade)
-- 💌 **MJML templating** — write emails in [MJML](https://mjml.io) and get bulletproof, email-client-safe HTML; plain HTML templates work too
-- 🚀 **Queued sendouts** — recipients are processed in configurable batches on your queue; pause, resume, or cancel mid-send with no double-sending, and schedule sendouts for later
-- ⚡ **Test emails skip the queue** — send yourself a rendered test instantly, with no tracking
-- 📈 **Tracking & reports** — unique opens (pixel), clicks (redirect), unsubscribes, bounces, complaints, and top links per sendout
-- 🔗 **Signed URLs everywhere** — unsubscribe, preference, and tracking links are HMAC-signed so they can't be forged or enumerated
+- 🧬 **Custom subscriber fields** — add fields to the subscriber blueprint and they're captured from signup forms and CSV imports, edited on the native entry form, and usable as merge tags
+- 🚀 **Queued sendouts** — batched on your queue; pause, resume, schedule, or cancel with no double-sending
+- ⚡ **Test sends** — comma-separated addresses, straight from the entry, instantly and untracked
+- 📈 **Tracking & reports** — unique opens, clicks, unsubscribes, bounces, complaints, and top links per sendout
+- 🔗 **Signed URLs everywhere** — unsubscribe, preferences, and tracking links are HMAC-signed
 - 📥 **One-click unsubscribe** — RFC 8058 `List-Unsubscribe` headers (required by Gmail & Yahoo for bulk senders)
-- 🪝 **Bounce & complaint webhooks** — Amazon SES, Mailgun, Postmark, and SendGrid; suppressed addresses never get emailed again
-- 🧑‍🤝‍🧑 **Preference center** — subscribers manage their name and list memberships from a signed link
-- 📄 **CSV import & export** — bring an existing list along, or take yours with you
-- 🛡️ **Honeypot** spam protection on the subscribe form
-- 🔐 **CP permissions** for lists, subscribers, and sendouts
+- 🪝 **Bounce & complaint webhooks** — Amazon SES, Mailgun, Postmark, SendGrid
+- 🧑‍🤝‍🧑 **Preference center**, 📄 **CSV import/export with a downloadable template**, 🛡️ **honeypot** spam protection, 🔐 **CP permissions**
+- 🤖 **AI-ready** — ships a Claude Code skill so your AI assistant knows how to draft, personalize, and send newsletters through the addon
 
-## How to Install
+## How to install
 
 ```bash
 composer require darinlarimore/statamic-email-subscribe
 php artisan migrate
 ```
 
-The addon stores subscribers, sendouts, and tracking events in your database (any Laravel-supported driver).
+Subscribers and mailing lists live as flat-file content by default (git-friendly; switch to the database driver via `EMAIL_SUBSCRIBE_STORAGE=database` for high-volume lists). Sendouts and tracking events always live in the database.
+
+To compile MJML locally, install the node package:
+
+```bash
+npm install mjml
+```
+
+No Node in production? `EMAIL_SUBSCRIBE_MJML=api` with [MJML API](https://mjml.io/api) credentials, or `EMAIL_SUBSCRIBE_MJML=none` for plain HTML templates. MJML compiles **once per sendout**, not per recipient.
 
 Optionally publish the config:
 
@@ -38,31 +49,87 @@ Optionally publish the config:
 php artisan vendor:publish --tag=email-subscribe-config
 ```
 
-### MJML
-
-To compile MJML templates locally, install the MJML node package in your project:
+## Quick start
 
 ```bash
-npm install mjml
+php artisan email-subscribe:scaffold-newsletter
 ```
 
-No Node on your production server? Set `EMAIL_SUBSCRIBE_MJML=api` and use your [MJML API](https://mjml.io/api) credentials, or `EMAIL_SUBSCRIBE_MJML=none` to write plain HTML templates instead. MJML compiles **once per sendout** (not per recipient), so even huge audiences only invoke it a single time.
+One command sets up everything: a `newsletters` collection wired with the Email Blocks fieldset, Live Preview pointed at the email renderer, an example entry showcasing every block and a merge tag, a first mailing list (if you have none), and the email templates published for customizing. It's idempotent and the collections are excluded from sitemaps/SEO automatically. Then:
 
-### Queue
+1. Open the **Example Newsletter** entry and hit **Live Preview** — edit blocks and watch the email re-render.
+2. Send yourself a copy via the entry's **Send Test Email** action (comma-separated addresses).
+3. Pick lists in the sidebar and toggle **Published** — the entry's sendout flips to **ready to send**.
+4. Open it under **Email Subscribe → Sendouts** and **Send now** or **Schedule**.
 
-Sendouts are processed in batches on your queue — make sure a worker is running (`php artisan queue:work`). With the `sync` driver everything still works; sending just happens in-request.
+## The workflow
 
-For scheduled sendouts, the scheduler needs to call:
+The entry is the whole authoring surface. In the main column: title, **Email Subject** (blank falls back to the title), **Email Preheader**, the **Email Blocks**, and an advanced **Email Template** override. In the sidebar: **From Name / From Email / Reply To** (placeholders show your site's configured defaults; blank uses them), **Send to lists**, and the **Published** toggle — the approval gate. Tests and Live Preview work on unpublished drafts, but a sendout can't start until the entry is published.
 
-```bash
-php artisan email-subscribe:send-scheduled
+**Sendouts create themselves.** Saving a newsletter entry ensures a draft sendout exists for it — one active sendout per entry. Drafts follow the entry live (subject, sender, lists, everything) and freeze when the run starts. The full lifecycle:
+
+- **ready to send** (green) — draft whose entry is published; start or schedule it from the sendout page, which also shows the recipient lists and a live recipient count.
+- **scheduled** — pending with a future send time (fired by the scheduler).
+- **sending / paused** — batches in flight; pause and resume freely, recipients can never be double-sent.
+- **sent** — the run keeps its stats forever, and **the entry is automatically unpublished** — Published always means "approved for a send that hasn't happened yet". Editing and re-publishing the entry creates a fresh draft: that's how re-sends work.
+- **Cancelling** before anything was delivered reverts the sendout to a clean ready-to-send draft; cancelling mid-send keeps the partial run's stats as a cancelled record.
+
+The **Sendouts** screen lists every run with status and progress, offers a **New entry** button for each newsletter collection, and surfaces any entries that don't have a sendout yet.
+
+![A completed sendout — status, recipient count, a test-send box, and per-campaign results](/readmeAssets/sendoutResults.png)
+
+### Using your own collection
+
+The block set ships as a namespaced fieldset. Import it into any collection blueprint (via the blueprint builder, or in YAML):
+
+```yaml
+-
+  import: email-subscribe::email_blocks
 ```
 
-e.g. in `routes/console.php`: `Schedule::command('email-subscribe:send-scheduled')->everyMinute();`
+Don't use a `prefix` on the import — the fixed field handles drive the automation. The sidebar fields (sender, lists) and the merge-tag hint are injected at runtime for any blueprint carrying the blocks.
+
+Statamic only shows the Live Preview button for routable collections. The scaffold command handles this by using the addon's (permission-gated) preview URL as the collection route — do the same for a hand-made collection:
+
+```yaml
+route: '/email-subscribe/entry-preview/{id}'
+preview_targets:
+  -
+    label: Email
+    url: '/email-subscribe/entry-preview/{id}'
+    refresh: true
+```
+
+## Merge tags
+
+Type merge tags anywhere in block text or the subject line:
+
+```
+Hi {{ first_name }}, thanks for reading!
+```
+
+Core tags: `{{ email }}`, `{{ first_name }}`, `{{ last_name }}`, `{{ full_name }}`, `{{ unsubscribe_url }}`, `{{ preferences_url }}` — plus every custom subscriber field. The entry editor lists exactly what's available. Values are swapped per recipient at send time; unknown tags render as empty text; previews show sample values.
+
+## Subscribers, lists & custom fields
+
+Subscribers and lists are ordinary Statamic entries (content driver), so managing them feels native:
+
+- **Subscribers** — the addon's Subscribers screen has search, status and list filters, CSV export, an **Add subscriber** form (add as already-consented, or send an opt-in confirmation email), and **CSV import** with a downloadable template whose columns include your custom fields. Each subscriber links to its native entry publish form, where everything is editable: names, status, custom fields, **list memberships** (checkboxes — unchecking unsubscribes), even the email address (the entry re-keys itself safely). A read-only **Activity** panel shows their recent opens, clicks, and unsubscribes. Entry titles are auto-generated from the email address.
+- **Lists** — created and edited as entries too: the Lists screen's **New list** button opens one, the handle defaults from the slug, and each list shows its active-subscriber count with a link to the filtered subscriber listing.
+
+![The mailing lists screen — active-subscriber counts and double opt-in per list](/readmeAssets/mailingLists.png)
+
+**The subscriber blueprint is the schema for custom fields.** Add a field (say `company`) to it and everything follows:
+
+- **Captured** from subscribe forms (`<input name="company">`) and CSV import columns — anything not matching a field is ignored
+- **Edited** on the subscriber's entry with the real fieldtype you chose
+- **Available** as `{{ company }}` in emails and subject lines
+
+On the database driver (no blueprint), list the handles in `email_subscribe.custom_fields` instead.
 
 ## Collecting subscribers
 
-Create a list in the CP (**Email Subscribe → Lists**), then drop the form tag in any template:
+Create a list (**Email Subscribe → Lists**), then drop the form tag in any template:
 
 ```antlers
 {{ email_subscribe:form list="newsletter" redirect="/thanks" class="newsletter-form" }}
@@ -80,51 +147,132 @@ Create a list in the CP (**Email Subscribe → Lists**), then drop the form tag 
 {{ /email_subscribe:form }}
 ```
 
-Use `lists="newsletter|product"` to subscribe to multiple lists at once. The form posts JSON-friendly responses too, so it works with AJAX submissions.
+The tag renders the `<form>` wrapper for you, including the CSRF token, a spam honeypot, and a hidden field carrying the list handles — you only supply the visible inputs. Valid input names are `email` (required), `first_name`, `last_name`, and any custom subscriber field.
+
+Use `lists="newsletter|product"` to subscribe to multiple lists at once. Add `redirect="/thanks"` to send visitors to a page instead of flashing a message.
 
 With double opt-in enabled (the default), new subscribers get a confirmation email and stay `pending` until they click the signed verification link.
 
-## Campaign templates
+### AJAX submissions
 
-A sendout renders a template of your choosing (default: the built-in MJML starter). Templates receive:
+The subscribe endpoint returns JSON when asked for it, so the same form can submit in the background without a page reload. Here is a complete starter using [Alpine](https://alpinejs.dev) that degrades to a normal POST when JavaScript is unavailable:
+
+```antlers
+<div
+    x-data="{
+        status: 'idle',
+        message: '',
+        errors: [],
+        async submit(event) {
+            const form = event.target;
+            this.status = 'sending';
+            this.errors = [];
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                const payload = await response.json();
+
+                if (response.ok) {
+                    this.status = 'done';
+                    this.message = payload.message;
+                } else {
+                    this.status = 'idle';
+                    this.errors = Object.values(payload.errors ?? {}).flat();
+                }
+            } catch {
+                this.status = 'idle';
+                this.errors = ['Something went wrong — please try again.'];
+            }
+        },
+    }"
+    x-on:submit.prevent="submit($event)"
+>
+    {{ email_subscribe:form list="newsletter" }}
+        <div x-show="status !== 'done'">
+            <label for="newsletter-email" class="sr-only">Email address</label>
+            <input id="newsletter-email" type="email" name="email" placeholder="you@example.com" required>
+            <button type="submit" x-bind:disabled="status === 'sending'">
+                <span x-text="status === 'sending' ? 'Sending…' : 'Subscribe'">Subscribe</span>
+            </button>
+
+            <ul x-show="errors.length" x-cloak role="alert">
+                <template x-for="error in errors">
+                    <li x-text="error"></li>
+                </template>
+            </ul>
+        </div>
+
+        <p x-show="status === 'done'" x-text="message" x-cloak role="status"></p>
+
+        {{ if success }}
+            <p role="status">{{ success }}</p>
+        {{ /if }}
+        {{ email_subscribe:errors }}
+            <p class="error">{{ error }}</p>
+        {{ /email_subscribe:errors }}
+    {{ /email_subscribe:form }}
+</div>
+```
+
+On success the endpoint returns `{ success: true, pending: true|false, message: "…" }` — `pending` is `true` when double opt-in is on and the subscriber still needs to confirm. Validation failures return a standard Laravel `422` with an `errors` object. The plain `{{ if success }}` / `{{ email_subscribe:errors }}` blocks at the bottom handle the no-JavaScript fallback, where the form does a full POST and redirects back.
+
+If your site uses Statamic's static caching, wrap the form in `{{ nocache }}` so the CSRF token isn't cached stale. The `x-cloak` attributes need the usual one-liner in your CSS if you don't have it already: `[x-cloak] { display: none !important; }`.
+
+## Email templates
+
+Every sendout renders through **one template**, published to `resources/views/vendor/email-subscribe/emails/`:
+
+```
+emails/
+├── default.antlers.html    ← layout: head, footer, and the block loop
+└── blocks/
+    ├── heading.antlers.html
+    ├── text.antlers.html
+    ├── image.antlers.html
+    ├── button.antlers.html
+    ├── divider.antlers.html
+    └── spacer.antlers.html
+```
+
+The layout renders the entry's blocks — one partial per type — or falls back to classic content (`{{ entry:content }}` under a subject headline) for entries without blocks:
+
+```antlers
+{{ entry:email_blocks }}
+    {{ partial src="email-subscribe::emails.blocks.{type}" }}
+{{ /entry:email_blocks }}
+```
+
+Three levels of customization:
+
+1. **Restyle a single block** — edit its partial (e.g. `blocks/button.antlers.html`); the rest stays stock.
+2. **Add your own block type** — override the `email-subscribe::email_blocks` fieldset (copy it to `resources/fieldsets/vendor/email-subscribe/email_blocks.yaml`), add a set, and drop a matching `blocks/{type}.antlers.html`. The loop picks it up with zero PHP.
+3. **Replace the template entirely** — set the entry's **Email Template** field to any view name (`emails.my-newsletter` → `resources/views/emails/my-newsletter.antlers.html`, Antlers or Blade, MJML or plain HTML).
+
+Templates receive:
 
 | Variable | Description |
 | --- | --- |
 | `subject`, `preheader`, `sendout` | Sendout fields |
-| `entry` | The Statamic entry selected as the content source (optional) |
+| `entry` | The newsletter entry (optional) |
 | `email`, `first_name`, `last_name`, `full_name` | Per-subscriber personalization |
 | `unsubscribe_url`, `preferences_url` | Signed per-subscriber links |
 
-Example (`resources/views/emails/newsletter.antlers.html`, set the sendout template to `emails.newsletter`):
+The template renders and compiles **once per sendout**; personalization is substituted per recipient at send time. Links are automatically rewritten for click tracking (disable with `email_subscribe.tracking.clicks`).
 
-```antlers
-<mjml>
-    <mj-body>
-        <mj-section>
-            <mj-column>
-                <mj-text font-size="20px">{{ subject }}</mj-text>
-                <mj-text>Hi {{ first_name }},</mj-text>
-                <mj-text>{{ entry:content }}</mj-text>
-                <mj-text font-size="12px">
-                    <a href="{{ unsubscribe_url }}">Unsubscribe</a> ·
-                    <a href="{{ preferences_url }}">Preferences</a>
-                </mj-text>
-            </mj-column>
-        </mj-section>
-    </mj-body>
-</mjml>
+## Queues & scheduling
+
+Sendouts are processed in batches on your queue — run a worker (`php artisan queue:work`). With the `sync` driver everything still works; sending just happens in-request. Already-sent recipients are excluded by query, so resuming a paused run (or a retried queue job) can never double-send. Batch size, delay, retries, and the abort threshold are configurable under `email_subscribe.sendout`.
+
+Scheduled sendouts fire via the scheduler:
+
+```php
+// routes/console.php
+Schedule::command('email-subscribe:send-scheduled')->everyMinute();
 ```
-
-The template renders and compiles **once per sendout**; personalization values are substituted per recipient at send time. Links are automatically rewritten for click tracking (disable with `email_subscribe.tracking.clicks`).
-
-## Sending
-
-1. **Email Subscribe → Sendouts → Create sendout**: subject, lists, content entry, template, sender.
-2. **Send a test** to yourself — instant, no queue, no tracking, `[Test]` subject prefix.
-3. **Preview** in the browser, then **Send now** or **Schedule** for a date.
-4. Watch progress on the sendout page — **Pause**, **Resume**, or **Cancel** any time. Already-sent recipients are excluded by query, so resuming (or a retried queue job) can never double-send.
-
-Batch size, delay between batches, per-recipient retry attempts, and the abort threshold are configurable under `email_subscribe.sendout`.
 
 ## Bounce & complaint webhooks
 
@@ -144,15 +292,27 @@ Hard bounces and spam complaints flip the subscriber to `bounced`/`complained` a
 
 ## Importing
 
+Import from the CP (**Email Subscribe → Subscribers**, with a downloadable CSV template) or the command line:
+
 ```bash
 php artisan email-subscribe:import subscribers.csv --list=newsletter --subscribed
 ```
 
-The CSV needs an `email` column; `first_name`/`last_name` are picked up when present. Omit `--subscribed` to import as pending. Export is available from the Subscribers CP page.
+The CSV needs an `email` column; `first_name`/`last_name` and any custom subscriber field columns are picked up when present. Omit `--subscribed` to import as pending. Export is available from the same screen.
+
+## AI assistant (Claude Code)
+
+The addon ships a [Claude Code](https://claude.com/claude-code) skill teaching an AI assistant this addon's workflow — the entry-drives-everything model, the publish-to-send gate, merge tags, subscriber keying, and the actions that aren't entry writes. It's published to `.claude/skills/email-subscribe/` on install (non-forced, so your edits survive updates), or manually:
+
+```bash
+php artisan vendor:publish --tag=email-subscribe-skill
+```
+
+With it in place, an assistant can draft a campaign from your content, personalize it with merge tags, and drive the send — using Statamic's native entry tools, since that's all a newsletter is here.
 
 ## Config reference
 
-See [config/email_subscribe.php](config/email_subscribe.php) — from name/email, mailer, queue connection/name, batch settings, double opt-in, verification link expiry, open/click tracking toggles, MJML strategy, redirect URLs, and route prefix.
+See [config/email_subscribe.php](config/email_subscribe.php) — from name/email, mailer, storage driver, queue connection/name, batch settings, double opt-in, verification link expiry, open/click tracking toggles, MJML strategy, redirect URLs, route prefix, and custom subscriber fields.
 
 ## License
 

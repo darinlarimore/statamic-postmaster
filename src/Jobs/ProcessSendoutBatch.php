@@ -102,6 +102,14 @@ class ProcessSendoutBatch implements ShouldQueue
             'status' => Sendout::STATUS_SENT,
             'sent_at' => now(),
         ]);
+
+        // The Published toggle means "approved for a send that hasn't
+        // happened yet", so a completed run unpublishes the entry. Editing
+        // and re-publishing is the deliberate path to a re-send. Quiet save:
+        // a normal save here would auto-create the next draft immediately.
+        rescue(function () use ($sendout): void {
+            $sendout->entry()?->published(false)->saveQuietly();
+        });
     }
 
     protected function sendToSubscriber(Sendout $sendout, SubscriberContract $subscriber, SendoutService $service): void

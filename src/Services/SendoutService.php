@@ -25,6 +25,16 @@ class SendoutService
      */
     public function start(Sendout $sendout, ?\DateTimeInterface $sendAt = null): Sendout
     {
+        if (($entry = $sendout->entry()) && ! $entry->published()) {
+            throw new \RuntimeException(__('The content entry is unpublished. Publish it to approve this email for sending.'));
+        }
+
+        $sendout->refreshFromEntry();
+
+        if (blank($sendout->list_ids)) {
+            throw new \RuntimeException(__('No recipients: pick at least one list in the entry\'s "Send to lists" field.'));
+        }
+
         $sendout->update([
             'html' => $this->renderer->render($sendout),
             'recipient_count' => $sendout->recipientCount(),
@@ -78,9 +88,28 @@ class SendoutService
 
     public function cancel(Sendout $sendout): void
     {
-        if (! in_array($sendout->status, [Sendout::STATUS_SENT, Sendout::STATUS_DRAFT])) {
-            $sendout->update(['status' => Sendout::STATUS_CANCELLED]);
+        if (in_array($sendout->status, [Sendout::STATUS_SENT, Sendout::STATUS_DRAFT])) {
+            return;
         }
+
+        // Nothing delivered yet (e.g. cancelling a schedule): revert to a
+        // clean draft - the frozen snapshot is discarded so a later start
+        // re-renders and re-freezes fresh. Once emails have gone out, the
+        // sendout stays a cancelled run record with its stats.
+        if ($sendout->sent_count === 0) {
+            $sendout->update([
+                'status' => Sendout::STATUS_DRAFT,
+                'send_at' => null,
+                'html' => null,
+                'recipient_keys' => null,
+                'recipient_count' => 0,
+                'error' => null,
+            ]);
+
+            return;
+        }
+
+        $sendout->update(['status' => Sendout::STATUS_CANCELLED]);
     }
 
     /**
@@ -89,19 +118,29 @@ class SendoutService
      */
     public function sendTest(Sendout $sendout, string $email): void
     {
-        $subscriber = $this->subscribers->findByEmail($email)
-            ?? SubscriberRecord::transient($email, 'Test', 'Subscriber');
+        $this->sendTests($sendout, [$email]);
+    }
 
-        $html = $this->renderer->personalize(
-            $this->renderer->render($sendout),
-            $sendout,
-            $subscriber,
-            tracking: false,
-        );
+    /**
+     * Test-send to several addresses, rendering once. Renders untracked so
+     * ephemeral sendouts (entry test sends) never mint click-tracking links.
+     *
+     * @param  array<int, string>  $emails
+     */
+    public function sendTests(Sendout $sendout, array $emails): void
+    {
+        $html = $this->renderer->render($sendout, trackable: false);
 
-        Mail::mailer(config('email_subscribe.mailer'))
-            ->to($email)
-            ->send(new CampaignMail($sendout, $subscriber, $html, isTest: true));
+        foreach ($emails as $email) {
+            $subscriber = $this->subscribers->findByEmail($email)
+                ?? SubscriberRecord::transient($email, 'Test', 'Subscriber');
+
+            $personalized = $this->renderer->personalize($html, $sendout, $subscriber, tracking: false);
+
+            Mail::mailer(config('email_subscribe.mailer'))
+                ->to($email)
+                ->send(new CampaignMail($sendout, $subscriber, $personalized, isTest: true));
+        }
     }
 
     /**

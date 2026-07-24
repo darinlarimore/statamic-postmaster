@@ -3,6 +3,7 @@
 namespace Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web;
 
 use Darinlarimore\StatamicEmailSubscribe\Services\SubscriberService;
+use Darinlarimore\StatamicEmailSubscribe\Support\MergeTags;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
@@ -24,13 +25,20 @@ class SubscribeController extends Controller
 
         $lists = is_array($validated['lists']) ? $validated['lists'] : explode('|', $validated['lists']);
 
+        // Form inputs matching custom subscriber fields (blueprint-defined or
+        // configured) are captured too - anything else is ignored.
+        $customValues = collect($request->only(MergeTags::customFieldHandles()->all()))
+            ->filter(fn ($value) => is_scalar($value) && $value !== '')
+            ->map(fn ($value) => mb_substr((string) $value, 0, 255))
+            ->all();
+
         $subscriber = $subscribers->subscribe(
             email: $validated['email'],
             lists: $lists,
             data: array_filter([
                 'first_name' => $validated['first_name'] ?? null,
                 'last_name' => $validated['last_name'] ?? null,
-            ]),
+            ]) + $customValues,
             source: 'form',
             ip: $request->ip(),
         );
@@ -48,10 +56,33 @@ class SubscribeController extends Controller
             return response()->json(['success' => true, 'pending' => $pending, 'message' => $message]);
         }
 
-        if ($redirect = $request->input('_redirect')) {
+        if ($redirect = $this->safeRedirect($request->input('_redirect'))) {
             return redirect($redirect)->with('email_subscribe.success', $message);
         }
 
         return back()->with('email_subscribe.success', $message);
+    }
+
+    /**
+     * Only honor a redirect target that stays on this site: a root-relative
+     * path, or an absolute URL whose host matches the app. Anything else
+     * (protocol-relative `//evil`, external hosts) is dropped so the public
+     * form can't be turned into an open redirect.
+     */
+    protected function safeRedirect(mixed $target): ?string
+    {
+        if (! is_string($target) || $target === '') {
+            return null;
+        }
+
+        if (str_starts_with($target, '/') && ! str_starts_with($target, '//')) {
+            return $target;
+        }
+
+        $host = parse_url($target, PHP_URL_HOST);
+
+        return $host && $host === parse_url((string) config('app.url'), PHP_URL_HOST)
+            ? $target
+            : null;
     }
 }

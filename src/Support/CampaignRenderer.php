@@ -31,11 +31,17 @@ class CampaignRenderer
 
     const TOKEN_OPEN_PIXEL = '%%es:open_pixel%%';
 
+    const BLOCKS_FIELD = 'email_blocks';
+
     /**
      * Render the sendout template to a compiled, trackable HTML snapshot.
+     * Pass $trackable false for ephemeral renders (live preview) - unsaved
+     * sendouts have no id for click links to attach to.
      */
-    public function render(Sendout $sendout): string
+    public function render(Sendout $sendout, bool $trackable = true): string
     {
+        $sendout->refreshFromEntry();
+
         $entry = $sendout->entry();
 
         $html = view($sendout->template ?: 'email-subscribe::emails.default', [
@@ -51,13 +57,15 @@ class CampaignRenderer
             'preferences_url' => self::TOKEN_PREFERENCES_URL,
         ])->render();
 
+        $html = MergeTags::convert($html);
+
         $html = Mjml::compile($html);
 
-        if (config('email_subscribe.tracking.clicks', true)) {
+        if ($trackable && config('email_subscribe.tracking.clicks', true)) {
             $html = $this->rewriteLinks($html, $sendout);
         }
 
-        if (config('email_subscribe.tracking.opens', true)) {
+        if ($trackable && config('email_subscribe.tracking.opens', true)) {
             $html = str_replace('</body>', self::TOKEN_OPEN_PIXEL.'</body>', $html);
 
             if (! str_contains($html, self::TOKEN_OPEN_PIXEL)) {
@@ -66,6 +74,27 @@ class CampaignRenderer
         }
 
         return $html;
+    }
+
+    /**
+     * Swap sentinel tokens for sample values so rendered HTML can be shown to
+     * a human instead of sent - CP previews and entry live previews both use this.
+     */
+    public function withSampleData(string $html): string
+    {
+        $html = strtr($html, [
+            self::TOKEN_EMAIL => 'subscriber@example.com',
+            self::TOKEN_FIRST_NAME => 'First',
+            self::TOKEN_LAST_NAME => 'Last',
+            self::TOKEN_FULL_NAME => 'First Last',
+            self::TOKEN_UNSUBSCRIBE_URL => '#',
+            self::TOKEN_PREFERENCES_URL => '#',
+            self::TOKEN_OPEN_PIXEL => '',
+        ]);
+
+        $html = MergeTags::sampleFieldTokens($html);
+
+        return preg_replace('/%%es:click:\d+%%/', '#', $html);
     }
 
     /**
@@ -90,6 +119,8 @@ class CampaignRenderer
             self::TOKEN_PREFERENCES_URL => $exists ? e(Urls::preferences($subscriber)) : '#',
             self::TOKEN_OPEN_PIXEL => $pixel,
         ]);
+
+        $html = MergeTags::resolveFieldTokens($html, $subscriber);
 
         // Click placeholders carry the link id: %%es:click:123%%
         return preg_replace_callback('/%%es:click:(\d+)%%/', function ($matches) use ($subscriber, $tracking) {

@@ -27,11 +27,28 @@ class ContentListRepository implements ListRepository
 
     public function find(string $key): ?ListContract
     {
+        $entry = $this->entryFor($key);
+
+        return $entry ? $this->hydrate($entry) : null;
+    }
+
+    /**
+     * Repo-created lists use the handle as the entry id; lists created as
+     * ordinary CP entries have generated ids with the handle in a field.
+     * Resolve either.
+     */
+    protected function entryFor(string $key): ?EntryContract
+    {
         $entry = Entry::find($key);
 
-        return $entry && $entry->collectionHandle() === $this->collection()
-            ? $this->hydrate($entry)
-            : null;
+        if ($entry && $entry->collectionHandle() === $this->collection()) {
+            return $entry;
+        }
+
+        return Entry::query()
+            ->where('collection', $this->collection())
+            ->where('handle', $key)
+            ->first();
     }
 
     public function findByHandle(string $handle): ?ListContract
@@ -86,7 +103,7 @@ class ContentListRepository implements ListRepository
             throw new InvalidArgumentException('List handle is immutable.');
         }
 
-        $entry = Entry::find($key);
+        $entry = $this->entryFor($key);
 
         if (! $entry) {
             throw new InvalidArgumentException("Mailing list [{$key}] not found.");
@@ -109,7 +126,7 @@ class ContentListRepository implements ListRepository
 
     public function delete(string $key): void
     {
-        Entry::find($key)?->delete();
+        $this->entryFor($key)?->delete();
     }
 
     public function countActiveSubscribers(string $key): int
@@ -119,7 +136,7 @@ class ContentListRepository implements ListRepository
 
     public function handleExists(string $handle, ?string $exceptKey = null): bool
     {
-        return Entry::find($handle) !== null && $handle !== $exceptKey;
+        return $this->entryFor($handle) !== null && $handle !== $exceptKey;
     }
 
     protected function hydrate(EntryContract $entry): ListRecord
@@ -127,7 +144,7 @@ class ContentListRepository implements ListRepository
         $doubleOptIn = $entry->get('double_opt_in');
 
         return new ListRecord(
-            handle: $entry->id(),
+            handle: (string) ($entry->get('handle') ?: $entry->id()),
             title: (string) $entry->get('title'),
             double_opt_in: $doubleOptIn === null ? null : (bool) $doubleOptIn,
             created_at: $entry->date() ? Carbon::instance($entry->date()) : null,

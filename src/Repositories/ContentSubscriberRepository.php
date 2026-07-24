@@ -8,6 +8,7 @@ use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
 use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
 use Darinlarimore\StatamicEmailSubscribe\Records\SubscriberRecord;
 use Darinlarimore\StatamicEmailSubscribe\Support\Diagnostics;
+use Darinlarimore\StatamicEmailSubscribe\Support\MergeTags;
 use DateTimeInterface;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -76,6 +77,7 @@ class ContentSubscriberRepository implements SubscriberRepository
             $entry = Entry::find($key);
 
             $data = [
+                'title' => strtolower(trim($record->email)),
                 'email' => strtolower(trim($record->email)),
                 'first_name' => $record->first_name,
                 'last_name' => $record->last_name,
@@ -86,9 +88,13 @@ class ContentSubscriberRepository implements SubscriberRepository
                 'complained_at' => $this->iso($record->complained_at),
                 'source' => $record->source,
                 'subscribe_ip' => $record->subscribe_ip,
-                'fields' => $record->fields ?: null,
                 'legacy_id' => $record->legacy_id !== null ? (string) $record->legacy_id : null,
             ];
+
+            // Custom fields are real top-level entry data, so blueprint
+            // fields added by the site show captured values when editing.
+            // The whitelist guarantees no collision with the core keys.
+            $data += $record->fields ?: [];
 
             if (! $entry) {
                 $entry = Entry::make()
@@ -219,7 +225,7 @@ class ContentSubscriberRepository implements SubscriberRepository
             first_name: $entry->get('first_name'),
             last_name: $entry->get('last_name'),
             status: (string) ($entry->get('sub_status') ?? Subscriber::STATUS_PENDING),
-            fields: $entry->get('fields') ?: [],
+            fields: $this->customFields($entry),
             lists: array_map(fn ($membership): array => (array) $membership, $entry->get('lists') ?: []),
             verified_at: $this->carbon($entry->get('verified_at')),
             unsubscribed_at: $this->carbon($entry->get('unsubscribed_at')),
@@ -231,6 +237,20 @@ class ContentSubscriberRepository implements SubscriberRepository
             legacy_id: $entry->get('legacy_id') !== null ? (int) $entry->get('legacy_id') : null,
             exists: true,
         );
+    }
+
+    /**
+     * Custom personalization fields: every non-internal top-level data key,
+     * which is exactly the set of blueprint-added (or capture-whitelisted)
+     * fields - the blueprint is the schema.
+     *
+     * @return array<string, mixed>
+     */
+    protected function customFields(EntryContract $entry): array
+    {
+        return collect($entry->data()->all())
+            ->except(array_merge(MergeTags::INTERNAL, ['email', 'first_name', 'last_name']))
+            ->all();
     }
 
     /**

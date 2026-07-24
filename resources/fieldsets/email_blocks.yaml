@@ -1,0 +1,123 @@
+title: 'Email Blocks'
+fields:
+  -
+    handle: email_subject
+    field:
+      type: text
+      display: 'Email Subject'
+      instructions: 'Subject line for sendouts created from this entry. Defaults to the title.'
+  -
+    handle: email_preheader
+    field:
+      type: text
+      display: 'Email Preheader'
+      instructions: 'Preview text shown after the subject in inboxes.'
+  -
+    handle: email_blocks
+    field:
+      type: replicator
+      display: 'Email Blocks'
+      collapse: accordion
+      button_label: 'Add block'
+      sets:
+        content:
+          display: Content
+          sets:
+            heading:
+              display: Heading
+              fields:
+                -
+                  handle: text
+                  field:
+                    type: text
+                    display: Heading
+                    validate:
+                      - required
+                -
+                  handle: size
+                  field:
+                    type: select
+                    display: Size
+                    default: h2
+                    options:
+                      h1: Large
+                      h2: Medium
+                      h3: Small
+            text:
+              display: Text
+              fields:
+                -
+                  handle: text
+                  field:
+                    type: bard
+                    display: Text
+                    buttons:
+                      - bold
+                      - italic
+                      - unorderedlist
+                      - orderedlist
+                      - anchor
+                      - quote
+            image:
+              display: Image
+              fields:
+                -
+                  handle: image
+                  field:
+                    type: assets
+                    display: Image
+                    max_files: 1
+                    mode: list
+                -
+                  handle: alt
+                  field:
+                    type: text
+                    display: 'Alt text'
+                -
+                  handle: link
+                  field:
+                    type: text
+                    display: 'Link URL'
+                    input_type: url
+            button:
+              display: Button
+              fields:
+                -
+                  handle: label
+                  field:
+                    type: text
+                    display: Label
+                    validate:
+                      - required
+                -
+                  handle: url
+                  field:
+                    type: text
+                    display: URL
+                    input_type: url
+                    validate:
+                      - required
+                -
+                  handle: color
+                  field:
+                    type: color
+                    display: Color
+            divider:
+              display: Divider
+              fields: []
+            spacer:
+              display: Spacer
+              fields:
+                -
+                  handle: height
+                  field:
+                    type: integer
+                    display: 'Height (px)'
+                    default: 24
+  -
+    handle: email_template
+    field:
+      type: text
+      display: 'Email Template'
+      placeholder: 'e.g. emails.my-newsletter'
+      instructions: 'Advanced: blank renders the built-in template, customizable in `resources/views/vendor/email-subscribe/emails/` (layout in `default.antlers.html`, one partial per block type in `blocks/`). Or enter the view name of your own MJML/HTML template - `emails.my-newsletter` renders `resources/views/emails/my-newsletter.antlers.html`.'

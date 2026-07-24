@@ -6,7 +6,12 @@
 
     <div class="es-wrap">
         <div class="es-card">
-            <h2>{{ __('Mailing lists') }}</h2>
+            <div class="es-header">
+                <h2>{{ __('Mailing lists') }}</h2>
+                @if ($createEntryUrl)
+                    <a class="es-btn primary" href="{{ $createEntryUrl }}">{{ __('New list') }}</a>
+                @endif
+            </div>
             @if ($lists->isEmpty())
                 <p class="es-muted">{{ __('No lists yet — create one below.') }}</p>
             @else
@@ -23,7 +28,13 @@
                     <tbody>
                         @foreach ($lists as $list)
                             <tr>
-                                <td>{{ $list->title }}</td>
+                                <td>
+                                    @if ($entryUrl = $entryEditUrls[$list->id] ?? null)
+                                        <a href="{{ $entryUrl }}">{{ $list->title }}</a>
+                                    @else
+                                        {{ $list->title }}
+                                    @endif
+                                </td>
                                 <td><code>{{ $list->handle }}</code></td>
                                 <td><a href="{{ cp_route('email-subscribe.subscribers.index', ['list' => $list->id]) }}">{{ number_format($list->active_subscribers_count) }}</a></td>
                                 <td class="es-muted">{{ $list->double_opt_in === null ? __('Default') : ($list->double_opt_in ? __('Yes') : __('No')) }}</td>
@@ -41,6 +52,7 @@
             @endif
         </div>
 
+        @unless ($createEntryUrl)
         <div class="es-card">
             <h2>{{ __('Create list') }}</h2>
             <form method="POST" action="{{ cp_route('email-subscribe.lists.store') }}">
@@ -67,5 +79,6 @@
                 <button type="submit" class="es-btn primary">{{ __('Create list') }}</button>
             </form>
         </div>
+        @endunless
     </div>
 @endsection

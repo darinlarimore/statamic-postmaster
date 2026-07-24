@@ -62,6 +62,63 @@ class Sendout extends Model
         return $this->entry_id ? Entry::find($this->entry_id) : null;
     }
 
+    /**
+     * Draft sendouts follow their entry - the entry is the authoring surface
+     * for everything: content, subject, sender, recipients, and template.
+     * The refreshed values persist when start() saves, freezing the run.
+     */
+    public function refreshFromEntry(): void
+    {
+        if ($this->status !== self::STATUS_DRAFT || ! ($entry = $this->entry())) {
+            return;
+        }
+
+        $this->title = (string) ($entry->get('title') ?: $this->title);
+        $this->subject = (string) ($entry->get('email_subject') ?: $entry->get('title') ?: $this->subject);
+        $this->preheader = $entry->get('email_preheader') ?? $this->preheader;
+        $this->from_name = $entry->get('email_from_name') ?: null;
+        $this->from_email = $entry->get('email_from_email') ?: null;
+        $this->reply_to = $entry->get('email_reply_to') ?: null;
+        $this->template = $entry->get('email_template') ?: null;
+        $this->list_ids = array_map('strval', $entry->get('email_lists') ?: []);
+    }
+
+    /**
+     * A draft whose entry is published has cleared every gate the start
+     * button will check - the CP badges show it green as "ready to send".
+     */
+    public function isReadyToSend(): bool
+    {
+        return $this->status === self::STATUS_DRAFT && (bool) $this->entry()?->published();
+    }
+
+    /**
+     * Pending with a future send_at means the scheduler will pick it up -
+     * "scheduled" tells editors that, where "pending" reads like a stall.
+     */
+    public function isScheduled(): bool
+    {
+        return $this->status === self::STATUS_PENDING && $this->send_at !== null;
+    }
+
+    public function statusLabel(): string
+    {
+        return match (true) {
+            $this->isReadyToSend() => __('ready to send'),
+            $this->isScheduled() => __('scheduled'),
+            default => $this->status,
+        };
+    }
+
+    public function statusBadgeClass(): string
+    {
+        return match (true) {
+            $this->isReadyToSend() => 'ready',
+            $this->isScheduled() => 'scheduled',
+            default => $this->status,
+        };
+    }
+
     public function isSendable(): bool
     {
         return in_array($this->status, [self::STATUS_PENDING, self::STATUS_SENDING]);

@@ -6,6 +6,7 @@ use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class Subscriber extends Model implements SubscriberContract
 {
@@ -41,6 +42,14 @@ class Subscriber extends Model implements SubscriberContract
     public function events(): HasMany
     {
         return $this->hasMany(SubscriberEvent::class, 'subscriber_id');
+    }
+
+    /**
+     * @return Collection<int, object>
+     */
+    public function listsForView(): Collection
+    {
+        return $this->lists;
     }
 
     public function fullName(): ?string

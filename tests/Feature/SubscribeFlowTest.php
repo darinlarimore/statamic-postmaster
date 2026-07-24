@@ -107,3 +107,37 @@ test('preferences page updates list memberships', function () {
     expect($fresh->first_name)->toBe('Jane');
     expect($fresh->lists()->wherePivotNull('unsubscribed_at')->pluck('handle')->all())->toBe(['product']);
 });
+
+test('an off-site _redirect is ignored (no open redirect)', function () {
+    $this->list->update(['double_opt_in' => false]);
+    config()->set('app.url', 'https://my-site.test');
+
+    // External host and protocol-relative targets are dropped, falling back
+    // to a redirect back to the form.
+    foreach (['https://evil.example/phish', '//evil.example', 'https:evil.example'] as $target) {
+        $response = $this->from('https://my-site.test/newsletter')->post(route('email-subscribe.subscribe'), [
+            'email' => uniqid().'@example.com',
+            'lists' => 'newsletter',
+            '_redirect' => $target,
+        ]);
+
+        $response->assertRedirect('https://my-site.test/newsletter');
+    }
+});
+
+test('a same-site _redirect is honored', function () {
+    $this->list->update(['double_opt_in' => false]);
+    config()->set('app.url', 'https://my-site.test');
+
+    $this->post(route('email-subscribe.subscribe'), [
+        'email' => 'relative@example.com',
+        'lists' => 'newsletter',
+        '_redirect' => '/thanks',
+    ])->assertRedirect('/thanks');
+
+    $this->post(route('email-subscribe.subscribe'), [
+        'email' => 'absolute@example.com',
+        'lists' => 'newsletter',
+        '_redirect' => 'https://my-site.test/thanks',
+    ])->assertRedirect('https://my-site.test/thanks');
+});

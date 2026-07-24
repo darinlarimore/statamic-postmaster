@@ -1,5 +1,6 @@
 <?php
 
+use Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web\EntryPreviewController;
 use Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web\PreferencesController;
 use Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web\SubscribeController;
 use Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web\UnsubscribeController;
@@ -10,6 +11,8 @@ Route::prefix(config('email_subscribe.route_prefix', 'email-subscribe'))
     ->name('email-subscribe.')
     ->group(function () {
         Route::post('subscribe', [SubscribeController::class, 'store'])->name('subscribe');
+
+        Route::get('entry-preview/{entry}', EntryPreviewController::class)->name('entry-preview');
 
         Route::get('verify/{subscriber}', VerifyController::class)
             ->middleware('signed')

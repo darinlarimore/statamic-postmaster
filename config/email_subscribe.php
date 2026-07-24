@@ -188,4 +188,19 @@ return [
         'level' => 'warning',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Custom Subscriber Fields
+    |--------------------------------------------------------------------------
+    |
+    | Under the content driver the subscriber blueprint is the schema: any
+    | field you add there is captured from subscribe forms and CSV imports,
+    | shown on the subscriber page, and available as a merge tag. This list
+    | supplements the blueprint for database-driver installs (which have no
+    | blueprint), e.g. ['company', 'city'].
+    |
+    */
+
+    'custom_fields' => [],
+
 ];

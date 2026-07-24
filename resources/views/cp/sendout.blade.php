@@ -10,8 +10,18 @@
                 <div>
                     <h2 style="margin-bottom: 4px;">{{ $sendout->title }}</h2>
                     <div class="es-muted">{{ $sendout->subject }}</div>
+                    @php($recipientLists = $sendout->lists())
+                    @php($recipientTotal = $sendout->recipient_count > 0 ? $sendout->recipient_count : $sendout->recipientCount())
+                    <div class="es-muted" style="margin-top: 2px;">
+                        @if ($recipientLists->isNotEmpty())
+                            {{ __('To:') }} {{ $recipientLists->pluck('title')->implode(', ') }}
+                            &middot; {{ trans_choice(':count recipient|:count recipients', $recipientTotal, ['count' => number_format($recipientTotal)]) }}
+                        @else
+                            {{ __('No lists selected - pick them in the entry\'s "Send to lists" field.') }}
+                        @endif
+                    </div>
                 </div>
-                <span class="es-badge {{ $sendout->status }}" style="font-size: 14px;">{{ $sendout->status }}</span>
+                <span class="es-badge {{ $sendout->statusBadgeClass() }}" style="font-size: 14px;">{{ $sendout->statusLabel() }}</span>
             </div>
 
             @if ($sendout->recipient_count > 0)
@@ -23,6 +33,10 @@
                     @if ($sendout->fail_count) &middot; {{ number_format($sendout->fail_count) }} {{ __('failed') }} @endif
                     @if ($sendout->sent_at) &middot; {{ __('completed') }} {{ $sendout->sent_at->format('M j, Y g:ia') }} @endif
                 </p>
+            @endif
+
+            @if ($sendout->isScheduled())
+                <p class="es-muted">{{ __('Scheduled for :time', ['time' => $sendout->send_at->format('M j, Y g:ia')]) }}</p>
             @endif
 
             @if ($sendout->error)
@@ -40,7 +54,9 @@
                         <input class="es-input" style="width: auto;" type="datetime-local" name="send_at" required>
                         <button type="submit" class="es-btn">{{ __('Schedule') }}</button>
                     </form>
-                    <a class="es-btn" href="{{ cp_route('email-subscribe.sendouts.edit', $sendout->id) }}">{{ __('Edit') }}</a>
+                    @if ($entryEditUrl = $sendout->entry()?->editUrl())
+                        <a class="es-btn" href="{{ $entryEditUrl }}">{{ __('Edit entry') }}</a>
+                    @endif
                 @endif
 
                 @if (in_array($sendout->status, ['pending', 'sending']))
@@ -80,9 +96,9 @@
             <h2>{{ __('Send a test') }}</h2>
             <form method="POST" action="{{ cp_route('email-subscribe.sendouts.test', $sendout->id) }}" class="es-actions">
                 @csrf
-                <input class="es-input" style="max-width: 280px;" type="email" name="email" placeholder="you@example.com" required>
+                <input class="es-input" style="max-width: 380px;" type="text" name="emails" placeholder="you@example.com, teammate@example.com" required>
                 <button type="submit" class="es-btn">{{ __('Send test email') }}</button>
-                <span class="es-muted">{{ __('Sends immediately — no queue, no tracking.') }}</span>
+                <span class="es-muted">{{ __('Comma separated. Sends immediately — no queue, no tracking.') }}</span>
             </form>
         </div>
 

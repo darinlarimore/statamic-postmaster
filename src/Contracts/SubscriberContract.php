@@ -2,6 +2,8 @@
 
 namespace Darinlarimore\StatamicEmailSubscribe\Contracts;
 
+use Illuminate\Support\Collection;
+
 /**
  * The shared behavioural surface both the Eloquent Subscriber model (database
  * driver) and the SubscriberRecord value object (content driver) expose, so the
@@ -24,4 +26,13 @@ interface SubscriberContract
     public function fullName(): ?string;
 
     public function isSendable(): bool;
+
+    /**
+     * List memberships shaped for the CP views: each item exposes `->title`,
+     * `->handle`, and `->pivot->subscribed_at` / `->pivot->unsubscribed_at`,
+     * whichever driver is backing the subscriber.
+     *
+     * @return Collection<int, object>
+     */
+    public function listsForView(): Collection;
 }

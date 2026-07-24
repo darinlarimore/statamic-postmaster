@@ -60,6 +60,7 @@ abstract class TestCase extends AddonTestCase
 
         $app['config']->set('statamic.stache.stores.collections.directory', $temp.'/content/collections');
         $app['config']->set('statamic.stache.stores.entries.directory', $temp.'/content/collections');
+        $app['config']->set('statamic.stache.stores.asset-containers.directory', $temp.'/content/assets');
         $app['config']->set('view.paths', array_merge(
             $app['config']->get('view.paths', []),
             [__DIR__.'/views'],

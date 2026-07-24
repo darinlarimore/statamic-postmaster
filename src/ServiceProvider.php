@@ -11,10 +11,16 @@ use Darinlarimore\StatamicEmailSubscribe\Repositories\EloquentSubscriberReposito
 use Darinlarimore\StatamicEmailSubscribe\Support\Diagnostics;
 use Darinlarimore\StatamicEmailSubscribe\Support\Storage;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
+use Statamic\Events\EntryBlueprintFound;
+use Statamic\Events\EntrySaved;
+use Statamic\Facades\Collection;
 use Statamic\Facades\CP\Nav;
+use Statamic\Facades\Entry;
 use Statamic\Facades\Permission;
 use Statamic\Providers\AddonServiceProvider;
+use Statamic\Statamic;
 
 class ServiceProvider extends AddonServiceProvider
 {
@@ -30,11 +36,24 @@ class ServiceProvider extends AddonServiceProvider
     protected $commands = [
         Console\Commands\SendScheduledSendouts::class,
         Console\Commands\ImportSubscribers::class,
+        Console\Commands\ScaffoldNewsletter::class,
     ];
 
     protected $vite = [
         'input' => ['resources/css/cp.css'],
         'publicDirectory' => 'resources/dist',
+    ];
+
+    /**
+     * Matches the view namespace instead of the composer package slug, so
+     * blueprints import the fieldset as email-subscribe::email_blocks.
+     */
+    protected $fieldsetNamespace = 'email-subscribe';
+
+    protected $middlewareGroups = [
+        'statamic.cp' => [
+            Http\Middleware\RedirectInternalCollections::class,
+        ],
     ];
 
     public function register()
@@ -80,14 +99,318 @@ class ServiceProvider extends AddonServiceProvider
             __DIR__.'/../resources/views/emails' => resource_path('views/vendor/email-subscribe/emails'),
         ], 'email-subscribe-views');
 
+        // A Claude Code skill teaching agents this addon's workflow, published
+        // into the project so a buyer's AI assistant knows how to drive it.
+        $this->publishes([
+            __DIR__.'/../resources/skills/email-subscribe' => base_path('.claude/skills/email-subscribe'),
+        ], 'email-subscribe-skill');
+
+        // statamic:install runs on every composer install/update, so publish
+        // without --force - existing (possibly customized) files are kept.
+        Statamic::afterInstalled(function ($command) {
+            $command->call('vendor:publish', ['--tag' => 'email-subscribe-views']);
+            $command->call('vendor:publish', ['--tag' => 'email-subscribe-skill']);
+        });
+
         if ($this->driver() === 'content') {
             Storage::bootStorage();
             $this->guardContentDriver();
         }
 
+        // register() instead of the $actions property - Statamic 5's
+        // AddonServiceProvider doesn't have one.
+        Actions\SendTestEmail::register();
+
+        $this->bootEntryBlueprintFields();
+        $this->bootAutoSendouts();
+        $this->bootListEntryDefaults();
+        $this->bootSubscriberEntryFields();
+        $this->bootSubscriberEntrySync();
+
         $this->bootRouteBindings();
         $this->bootPermissions();
         $this->bootNav();
+    }
+
+    /**
+     * Runtime additions to entry blueprints that carry Email Blocks - these
+     * can't live in the fieldset YAML because their content is dynamic: the
+     * merge-tag hint reflects the subscriber blueprint, and the recipient
+     * checkboxes reflect the site's mailing lists.
+     */
+    protected function bootEntryBlueprintFields(): void
+    {
+        Event::listen(EntryBlueprintFound::class, function (EntryBlueprintFound $event): void {
+            if (! $event->blueprint->hasField('email_blocks')) {
+                return;
+            }
+
+            $tags = Support\MergeTags::available()
+                ->map(fn (string $tag) => '`{{ '.$tag.' }}`')
+                ->implode(', ');
+
+            $event->blueprint->ensureField('email_merge_tags_hint', [
+                'type' => 'section',
+                'display' => __('Merge Tags'),
+                'instructions' => __('Personalize with merge tags anywhere in text: :tags. Unknown tags render as empty text.', ['tags' => $tags]),
+            ]);
+
+            // Injected at runtime rather than shipped in the fieldset so the
+            // placeholders can surface the site's actual configured defaults.
+            $event->blueprint->ensureField('email_from_name', [
+                'type' => 'text',
+                'display' => __('From Name'),
+                'placeholder' => config('email_subscribe.from.name'),
+                'instructions' => __('Blank uses the site default.'),
+            ], 'sidebar');
+
+            $event->blueprint->ensureField('email_from_email', [
+                'type' => 'text',
+                'input_type' => 'email',
+                'display' => __('From Email'),
+                'placeholder' => config('email_subscribe.from.email'),
+                'instructions' => __('Blank uses the site default.'),
+            ], 'sidebar');
+
+            $event->blueprint->ensureField('email_reply_to', [
+                'type' => 'text',
+                'input_type' => 'email',
+                'display' => __('Reply To'),
+                'placeholder' => config('email_subscribe.reply_to') ?: config('email_subscribe.from.email'),
+                'instructions' => __('Blank uses the site default.'),
+            ], 'sidebar');
+
+            $listOptions = app(ListRepository::class)->all()
+                ->mapWithKeys(fn ($list) => [(string) $list->getKey() => $list->title])
+                ->all();
+
+            $event->blueprint->ensureField('email_lists', [
+                'type' => 'checkboxes',
+                'display' => __('Send to lists'),
+                'instructions' => __('Recipients for sendouts created from this entry.'),
+                'options' => $listOptions,
+            ], 'sidebar');
+        });
+    }
+
+    /**
+     * Saving an entry that carries Email Blocks ensures a draft sendout
+     * exists for it, so authored emails appear on the Sendouts screen without
+     * a manual step. rescue() keeps entry saves working even if the addon's
+     * migrations haven't run yet.
+     */
+    protected function bootAutoSendouts(): void
+    {
+        Event::listen(EntrySaved::class, function (EntrySaved $event): void {
+            $entry = $event->entry;
+
+            if (! $entry->blueprint()->hasField(Support\CampaignRenderer::BLOCKS_FIELD)) {
+                return;
+            }
+
+            rescue(function () use ($entry): void {
+                // One ACTIVE sendout per entry: skip while a draft exists or
+                // a run is underway, but an edit after a completed send spins
+                // up a fresh draft, which is how re-sends happen.
+                $hasActive = Models\Sendout::query()
+                    ->where('entry_id', (string) $entry->id())
+                    ->whereIn('status', [
+                        Models\Sendout::STATUS_DRAFT,
+                        Models\Sendout::STATUS_PENDING,
+                        Models\Sendout::STATUS_SENDING,
+                        Models\Sendout::STATUS_PAUSED,
+                    ])
+                    ->exists();
+
+                if ($hasActive) {
+                    return;
+                }
+
+                $sendout = new Models\Sendout([
+                    'title' => (string) $entry->get('title'),
+                    'subject' => (string) $entry->get('title'),
+                    'entry_id' => (string) $entry->id(),
+                    'list_ids' => [],
+                    'status' => Models\Sendout::STATUS_DRAFT,
+                ]);
+
+                $sendout->refreshFromEntry();
+                $sendout->save();
+            });
+        });
+    }
+
+    /**
+     * Mailing lists can be created as ordinary CP entries; the handle field
+     * is the immutable key, so default it from the slug when left blank.
+     */
+    protected function bootListEntryDefaults(): void
+    {
+        Event::listen(EntrySaved::class, function (EntrySaved $event): void {
+            $entry = $event->entry;
+            $listsCollection = config('email_subscribe.storage.collections.lists', 'email_lists');
+
+            if ($entry->collectionHandle() !== $listsCollection || $entry->get('handle')) {
+                return;
+            }
+
+            $entry->set('handle', $entry->slug())->saveQuietly();
+        });
+    }
+
+    /**
+     * The native entry publish form is the subscriber editor (it renders
+     * custom blueprint fields with real fieldtypes), so inject the parts the
+     * blueprint can't express statically: list-membership checkboxes with
+     * per-entry defaults, and a read-only activity history.
+     */
+    protected function bootSubscriberEntryFields(): void
+    {
+        Event::listen(EntryBlueprintFound::class, function (EntryBlueprintFound $event): void {
+            $subscribersHandle = config('email_subscribe.storage.collections.subscribers', 'email_subscribers');
+
+            if ($event->blueprint->namespace() !== 'collections.'.$subscribersHandle) {
+                return;
+            }
+
+            rescue(function () use ($event): void {
+                $activeHandles = collect($event->entry?->get('lists') ?: [])
+                    ->filter(fn ($membership) => empty($membership['unsubscribed_at']))
+                    ->pluck('handle')
+                    ->values()
+                    ->all();
+
+                // Spliced into contents (in-memory, never saved) instead of
+                // ensureField: blueprint objects are cached aggressively and
+                // an ensure can't be refreshed, but strip-and-append is
+                // idempotent and always carries the current entry's state.
+                // The default feeds the publish form; the save listener
+                // strips the submitted key so it never becomes entry data.
+                $contents = $event->blueprint->contents();
+
+                foreach ($contents['tabs'] ?? [] as $tabKey => $tab) {
+                    foreach ($tab['sections'] ?? [] as $sectionKey => $section) {
+                        $contents['tabs'][$tabKey]['sections'][$sectionKey]['fields'] = array_values(array_filter(
+                            $section['fields'] ?? [],
+                            fn ($field) => ! in_array($field['handle'] ?? null, ['active_lists', 'activity_history']),
+                        ));
+                    }
+                }
+
+                $contents['tabs']['sidebar']['sections'][0]['fields'][] = [
+                    'handle' => 'active_lists',
+                    'field' => [
+                        'type' => 'checkboxes',
+                        'display' => __('List memberships'),
+                        'instructions' => __('Unchecking a list unsubscribes them from it.'),
+                        'options' => app(ListRepository::class)->all()
+                            ->mapWithKeys(fn ($list) => [(string) $list->getKey() => $list->title])
+                            ->all(),
+                        'default' => $activeHandles,
+                    ],
+                ];
+
+                if ($event->entry) {
+                    $history = Models\SubscriberEvent::query()
+                        ->where('subscriber_key', $event->entry->id())
+                        ->with('sendout')
+                        ->latest()
+                        ->limit(10)
+                        ->get()
+                        ->map(fn ($activityEvent) => sprintf(
+                            '**%s** · %s · %s',
+                            $activityEvent->type,
+                            $activityEvent->sendout?->title ?? ($activityEvent->url ?? $activityEvent->detail ?? '—'),
+                            $activityEvent->created_at->format('M j, Y g:ia'),
+                        ))
+                        ->implode("\n\n");
+
+                    $contents['tabs']['main']['sections'][0]['fields'][] = [
+                        'handle' => 'activity_history',
+                        'field' => [
+                            'type' => 'section',
+                            'display' => __('Activity'),
+                            'instructions' => $history !== '' ? $history : __('No activity yet.'),
+                        ],
+                    ];
+                }
+
+                $event->blueprint->setContents($contents);
+            });
+        });
+    }
+
+    /**
+     * Reconcile a subscriber entry after a CP save: the injected checkboxes
+     * become real list memberships (then the transient key is stripped), an
+     * email edit re-keys the entry to sha1(email), and going straight to
+     * subscribed backfills the verification timestamp. Repository writes use
+     * saveQuietly(), so this only fires for human edits.
+     */
+    protected function bootSubscriberEntrySync(): void
+    {
+        Event::listen(EntrySaved::class, function (EntrySaved $event): void {
+            $entry = $event->entry;
+            $subscribersHandle = config('email_subscribe.storage.collections.subscribers', 'email_subscribers');
+
+            if ($entry->collectionHandle() !== $subscribersHandle) {
+                return;
+            }
+
+            rescue(function () use ($entry): void {
+                $repository = app(SubscriberRepository::class);
+                $email = strtolower(trim((string) $entry->get('email')));
+
+                if (filter_var($email, FILTER_VALIDATE_EMAIL) && $entry->id() !== ($key = $repository->keyForEmail($email))) {
+                    $rekeyed = Entry::make()
+                        ->collection($entry->collectionHandle())
+                        ->id($key)
+                        ->slug($key)
+                        ->date($entry->date() ?? now())
+                        ->published(true)
+                        ->data($entry->data()->all());
+
+                    $rekeyed->saveQuietly();
+                    $entry->deleteQuietly();
+                    $entry = $rekeyed;
+                }
+
+                $requested = $entry->get('active_lists');
+                $active = collect($entry->get('lists') ?: [])
+                    ->filter(fn ($membership) => empty($membership['unsubscribed_at']))
+                    ->pluck('handle')
+                    ->all();
+
+                // Strip the transient key (and backfill verification) BEFORE
+                // touching memberships - membership writes re-save the entry,
+                // and saving our then-stale copy afterwards would clobber them.
+                $changed = is_array($requested);
+                $entry->remove('active_lists');
+
+                if ($entry->get('sub_status') === 'subscribed' && ! $entry->get('verified_at')) {
+                    $entry->set('verified_at', now()->toIso8601String());
+                    $changed = true;
+                }
+
+                if ($changed) {
+                    $entry->saveQuietly();
+                }
+
+                if (is_array($requested)) {
+                    foreach (app(ListRepository::class)->all() as $list) {
+                        $listKey = (string) $list->getKey();
+                        $isRequested = in_array($listKey, array_map('strval', $requested), true);
+                        $isActive = in_array($listKey, $active, true);
+
+                        if ($isRequested && ! $isActive) {
+                            $repository->setMembership($entry->id(), $listKey, now(), null);
+                        } elseif (! $isRequested && $isActive) {
+                            $repository->setMembership($entry->id(), $listKey, null, now());
+                        }
+                    }
+                }
+            });
+        });
     }
 
     protected function driver(): string
@@ -165,7 +488,20 @@ class ServiceProvider extends AddonServiceProvider
                 ->section('Tools')
                 ->can('view email subscribe')
                 ->route('email-subscribe.index')
-                ->icon('email-utility');
+                ->icon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.75" y="4.75" width="18.5" height="14.5" rx="2"/><path d="m3 6.5 9 6.5 9-6.5"/></svg>');
+
+            // The content driver's storage collections are internals - people
+            // manage subscribers and lists through the addon's own pages, so
+            // hide the raw collections from the Content nav.
+            if ($this->driver() === 'content') {
+                foreach (['subscribers' => 'email_subscribers', 'lists' => 'email_lists'] as $key => $default) {
+                    $handle = config('email_subscribe.storage.collections.'.$key, $default);
+
+                    if ($collection = Collection::findByHandle($handle)) {
+                        $nav->remove('Content', 'Collections', $collection->title());
+                    }
+                }
+            }
         });
     }
 }

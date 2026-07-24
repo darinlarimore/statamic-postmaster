@@ -55,7 +55,7 @@ class SubscriberService
         $customFields = array_diff_key($data, array_flip(['first_name', 'last_name']));
 
         if ($customFields !== []) {
-            $record->fields = $customFields;
+            $record->fields = array_merge($record->fields, $customFields);
         }
 
         // A returning unsubscriber who signs up again gets a clean slate;

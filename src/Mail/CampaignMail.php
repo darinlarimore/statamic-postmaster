@@ -4,6 +4,7 @@ namespace Darinlarimore\StatamicEmailSubscribe\Mail;
 
 use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
 use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
+use Darinlarimore\StatamicEmailSubscribe\Support\MergeTags;
 use Darinlarimore\StatamicEmailSubscribe\Support\Urls;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
@@ -25,7 +26,7 @@ class CampaignMail extends Mailable
         return new Envelope(
             from: new Address($this->sendout->fromEmail(), $this->sendout->fromName()),
             replyTo: array_filter([$this->sendout->reply_to ?: config('email_subscribe.reply_to')]),
-            subject: ($this->isTest ? '[Test] ' : '').$this->sendout->subject,
+            subject: ($this->isTest ? '[Test] ' : '').MergeTags::personalizeText($this->sendout->subject, $this->subscriber),
         );
     }
 
