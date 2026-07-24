@@ -52,7 +52,7 @@
                     <tbody>
                         @foreach ($recentSubscribers as $subscriber)
                             <tr>
-                                <td><a href="{{ cp_route('postmaster.subscribers.show', $subscriber->id) }}">{{ $subscriber->email }}</a></td>
+                                <td><a href="{{ $entryEditUrls[$subscriber->getKey()] ?? cp_route('postmaster.subscribers.show', $subscriber->id) }}">{{ $subscriber->email }}</a></td>
                                 <td><span class="es-badge {{ $subscriber->status }}">{{ $subscriber->status }}</span></td>
                                 <td class="es-muted">{{ $subscriber->created_at->diffForHumans() }}</td>
                             </tr>

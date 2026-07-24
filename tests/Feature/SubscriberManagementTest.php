@@ -27,7 +27,7 @@ test('subscribers can be added from the CP as already-subscribed', function () {
         'first_name' => 'Addie',
         'company' => 'Added Co',
         'list_ids' => [(string) $list->id],
-    ])->assertSessionHasNoErrors()->assertRedirect();
+    ])->assertSessionHasNoErrors()->assertRedirect(cp_route('postmaster.subscribers.index'));
 
     $subscriber = app(SubscriberRepository::class)->findByEmail('added@example.com');
 

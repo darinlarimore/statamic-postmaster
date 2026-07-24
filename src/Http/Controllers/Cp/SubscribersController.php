@@ -102,7 +102,7 @@ class SubscribersController extends CpController
                 ->send(new VerifyMail($saved));
         }
 
-        return redirect(cp_route('postmaster.subscribers.show', $saved->getKey()))
+        return redirect(cp_route('postmaster.subscribers.index'))
             ->with('success', $sendOptIn ? __('Subscriber added - confirmation email sent') : __('Subscriber added'));
     }
 
@@ -266,7 +266,7 @@ class SubscribersController extends CpController
             }
         }
 
-        return redirect(cp_route('postmaster.subscribers.show', $saved->getKey()))
+        return redirect(cp_route('postmaster.subscribers.index'))
             ->with('success', __('Subscriber updated'));
     }
 
