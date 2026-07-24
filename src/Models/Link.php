@@ -2,10 +2,9 @@
 
 namespace Darinlarimore\Postmaster\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Link extends Model
+class Link extends PostmasterModel
 {
     protected $table = 'postmaster_links';
 

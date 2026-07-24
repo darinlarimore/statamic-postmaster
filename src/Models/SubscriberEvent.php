@@ -2,10 +2,9 @@
 
 namespace Darinlarimore\Postmaster\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class SubscriberEvent extends Model
+class SubscriberEvent extends PostmasterModel
 {
     const TYPE_SENT = 'sent';
 

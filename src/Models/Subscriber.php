@@ -3,12 +3,11 @@
 namespace Darinlarimore\Postmaster\Models;
 
 use Darinlarimore\Postmaster\Contracts\SubscriberContract;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 
-class Subscriber extends Model implements SubscriberContract
+class Subscriber extends PostmasterModel implements SubscriberContract
 {
     const STATUS_PENDING = 'pending';
 

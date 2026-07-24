@@ -166,6 +166,21 @@ return [
             'subscribers' => 'postmaster_subscribers',
             'lists' => 'postmaster_lists',
         ],
+
+        /*
+        | Sendouts and tracking events (opens, clicks, bounces) are always
+        | stored relationally - that write-heavy, aggregate-queried data is a
+        | poor fit for flat files. Rather than force the host app to configure
+        | a database, the addon provisions its own SQLite file and migrates it
+        | on boot, so a flat-file Statamic site needs zero database setup.
+        |
+        | Point 'connection' at one of your own database.connections (e.g.
+        | 'mysql') to co-locate the data with your app's database instead. The
+        | 'database' path is only used by the self-provisioned SQLite default.
+        */
+        'connection' => env('POSTMASTER_DB_CONNECTION', 'postmaster'),
+
+        'database' => env('POSTMASTER_DB_DATABASE', storage_path('postmaster.sqlite')),
     ],
 
     /*

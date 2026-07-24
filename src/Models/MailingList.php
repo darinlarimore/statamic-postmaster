@@ -3,10 +3,9 @@
 namespace Darinlarimore\Postmaster\Models;
 
 use Darinlarimore\Postmaster\Contracts\ListContract;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class MailingList extends Model implements ListContract
+class MailingList extends PostmasterModel implements ListContract
 {
     protected $table = 'postmaster_lists';
 

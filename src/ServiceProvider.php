@@ -8,6 +8,7 @@ use Darinlarimore\Postmaster\Repositories\ContentListRepository;
 use Darinlarimore\Postmaster\Repositories\ContentSubscriberRepository;
 use Darinlarimore\Postmaster\Repositories\EloquentListRepository;
 use Darinlarimore\Postmaster\Repositories\EloquentSubscriberRepository;
+use Darinlarimore\Postmaster\Support\DatabaseProvisioner;
 use Darinlarimore\Postmaster\Support\Diagnostics;
 use Darinlarimore\Postmaster\Support\Storage;
 use Illuminate\Routing\Middleware\SubstituteBindings;
@@ -64,6 +65,8 @@ class ServiceProvider extends AddonServiceProvider
 
         Diagnostics::boot();
 
+        DatabaseProvisioner::registerConnection();
+
         $this->app->singleton(SubscriberRepository::class, fn () => $this->driver() === 'database'
             ? new EloquentSubscriberRepository
             : new ContentSubscriberRepository);
@@ -111,6 +114,11 @@ class ServiceProvider extends AddonServiceProvider
             $command->call('vendor:publish', ['--tag' => 'postmaster-views']);
             $command->call('vendor:publish', ['--tag' => 'postmaster-skill']);
         });
+
+        // Sendouts and tracking events are always relational - provision the
+        // addon's own database (self-created SQLite by default) so a flat-file
+        // site needs no database configuration.
+        DatabaseProvisioner::ensureProvisioned();
 
         if ($this->driver() === 'content') {
             Storage::bootStorage();

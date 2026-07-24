@@ -45,6 +45,11 @@ abstract class TestCase extends AddonTestCase
         $app['config']->set('statamic.stache.watcher', false);
         $app['config']->set('statamic.search.indexes', []);
 
+        // Models resolve their connection from postmaster.storage.connection;
+        // point it at the in-memory testing database RefreshDatabase migrates,
+        // so the addon's own SQLite provisioning is bypassed in tests.
+        $app['config']->set('postmaster.storage.connection', 'testing');
+
         $app['config']->set('statamic.editions.pro', true);
         $app['config']->set('postmaster.mjml.strategy', 'none');
         $app['config']->set('postmaster.webhooks.signing_key', 'test-signing-key');

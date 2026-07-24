@@ -6,13 +6,12 @@ use Darinlarimore\Postmaster\Contracts\ListContract;
 use Darinlarimore\Postmaster\Contracts\ListRepository;
 use Darinlarimore\Postmaster\Contracts\SubscriberContract;
 use Darinlarimore\Postmaster\Sendout\SendoutRecipientResolver;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Statamic\Facades\Entry;
 
-class Sendout extends Model
+class Sendout extends PostmasterModel
 {
     const STATUS_DRAFT = 'draft';
 
