@@ -1,9 +1,9 @@
 <?php
 
-use Darinlarimore\StatamicEmailSubscribe\Mail\VerifyMail;
-use Darinlarimore\StatamicEmailSubscribe\Models\MailingList;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
-use Darinlarimore\StatamicEmailSubscribe\Support\Urls;
+use Darinlarimore\Postmaster\Mail\VerifyMail;
+use Darinlarimore\Postmaster\Models\MailingList;
+use Darinlarimore\Postmaster\Models\Subscriber;
+use Darinlarimore\Postmaster\Support\Urls;
 use Illuminate\Support\Facades\Mail;
 
 beforeEach(function () {
@@ -13,7 +13,7 @@ beforeEach(function () {
 });
 
 test('subscribing with double opt-in stays pending and sends a verification email', function () {
-    $response = $this->post(route('email-subscribe.subscribe'), [
+    $response = $this->post(route('postmaster.subscribe'), [
         'email' => 'jane@example.com',
         'first_name' => 'Jane',
         'lists' => 'newsletter',
@@ -52,7 +52,7 @@ test('a tampered verification link is rejected', function () {
 test('subscribing without double opt-in activates immediately', function () {
     $this->list->update(['double_opt_in' => false]);
 
-    $this->post(route('email-subscribe.subscribe'), [
+    $this->post(route('postmaster.subscribe'), [
         'email' => 'joe@example.com',
         'lists' => 'newsletter',
     ]);
@@ -64,7 +64,7 @@ test('subscribing without double opt-in activates immediately', function () {
 });
 
 test('the honeypot swallows bot submissions', function () {
-    $this->post(route('email-subscribe.subscribe'), [
+    $this->post(route('postmaster.subscribe'), [
         'email' => 'bot@example.com',
         'lists' => 'newsletter',
         'es_website' => 'https://spam.example',
@@ -115,7 +115,7 @@ test('an off-site _redirect is ignored (no open redirect)', function () {
     // External host and protocol-relative targets are dropped, falling back
     // to a redirect back to the form.
     foreach (['https://evil.example/phish', '//evil.example', 'https:evil.example'] as $target) {
-        $response = $this->from('https://my-site.test/newsletter')->post(route('email-subscribe.subscribe'), [
+        $response = $this->from('https://my-site.test/newsletter')->post(route('postmaster.subscribe'), [
             'email' => uniqid().'@example.com',
             'lists' => 'newsletter',
             '_redirect' => $target,
@@ -129,13 +129,13 @@ test('a same-site _redirect is honored', function () {
     $this->list->update(['double_opt_in' => false]);
     config()->set('app.url', 'https://my-site.test');
 
-    $this->post(route('email-subscribe.subscribe'), [
+    $this->post(route('postmaster.subscribe'), [
         'email' => 'relative@example.com',
         'lists' => 'newsletter',
         '_redirect' => '/thanks',
     ])->assertRedirect('/thanks');
 
-    $this->post(route('email-subscribe.subscribe'), [
+    $this->post(route('postmaster.subscribe'), [
         'email' => 'absolute@example.com',
         'lists' => 'newsletter',
         '_redirect' => 'https://my-site.test/thanks',

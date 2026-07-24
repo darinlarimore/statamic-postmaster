@@ -1,6 +1,6 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Models;
+namespace Darinlarimore\Postmaster\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,7 +23,7 @@ class SubscriberEvent extends Model
 
     const TYPE_SKIPPED = 'skipped';
 
-    protected $table = 'email_subscribe_events';
+    protected $table = 'postmaster_events';
 
     protected $guarded = [];
 

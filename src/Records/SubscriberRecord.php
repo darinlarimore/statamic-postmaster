@@ -1,10 +1,10 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Records;
+namespace Darinlarimore\Postmaster\Records;
 
 use Carbon\CarbonInterface;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Models\Subscriber;
 use Illuminate\Support\Collection;
 
 /**

@@ -1,16 +1,16 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Cp;
+namespace Darinlarimore\Postmaster\Http\Controllers\Cp;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Mail\VerifyMail;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
-use Darinlarimore\StatamicEmailSubscribe\Models\SubscriberEvent;
-use Darinlarimore\StatamicEmailSubscribe\Records\SubscriberRecord;
-use Darinlarimore\StatamicEmailSubscribe\Services\SubscriberImporter;
-use Darinlarimore\StatamicEmailSubscribe\Support\MergeTags;
+use Darinlarimore\Postmaster\Contracts\ListRepository;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Contracts\SubscriberRepository;
+use Darinlarimore\Postmaster\Mail\VerifyMail;
+use Darinlarimore\Postmaster\Models\Subscriber;
+use Darinlarimore\Postmaster\Models\SubscriberEvent;
+use Darinlarimore\Postmaster\Records\SubscriberRecord;
+use Darinlarimore\Postmaster\Services\SubscriberImporter;
+use Darinlarimore\Postmaster\Support\MergeTags;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Statamic\Facades\Entry;
@@ -28,7 +28,7 @@ class SubscribersController extends CpController
             'per_page' => 50,
         ])->withQueryString();
 
-        $entryEditUrls = config('email_subscribe.storage.driver', 'content') === 'content'
+        $entryEditUrls = config('postmaster.storage.driver', 'content') === 'content'
             ? collect($subscribers->items())
                 ->mapWithKeys(fn ($subscriber) => [
                     $subscriber->getKey() => Entry::find($subscriber->getKey())?->editUrl(),
@@ -37,7 +37,7 @@ class SubscribersController extends CpController
                 ->all()
             : [];
 
-        return view('email-subscribe::cp.subscribers', [
+        return view('postmaster::cp.subscribers', [
             'title' => 'Subscribers',
             'subscribers' => $subscribers,
             'entryEditUrls' => $entryEditUrls,
@@ -97,12 +97,12 @@ class SubscribersController extends CpController
         }
 
         if ($sendOptIn) {
-            Mail::mailer(config('email_subscribe.mailer'))
+            Mail::mailer(config('postmaster.mailer'))
                 ->to($saved->email)
                 ->send(new VerifyMail($saved));
         }
 
-        return redirect(cp_route('email-subscribe.subscribers.show', $saved->getKey()))
+        return redirect(cp_route('postmaster.subscribers.show', $saved->getKey()))
             ->with('success', $sendOptIn ? __('Subscriber added - confirmation email sent') : __('Subscriber added'));
     }
 
@@ -158,7 +158,7 @@ class SubscribersController extends CpController
             ->values()
             ->all();
 
-        return view('email-subscribe::cp.subscriber', [
+        return view('postmaster::cp.subscriber', [
             'title' => $subscriber->email,
             'subscriber' => $subscriber,
             'lists' => app(ListRepository::class)->all(),
@@ -266,7 +266,7 @@ class SubscribersController extends CpController
             }
         }
 
-        return redirect(cp_route('email-subscribe.subscribers.show', $saved->getKey()))
+        return redirect(cp_route('postmaster.subscribers.show', $saved->getKey()))
             ->with('success', __('Subscriber updated'));
     }
 
@@ -274,7 +274,7 @@ class SubscribersController extends CpController
     {
         app(SubscriberRepository::class)->delete($subscriber->getKey());
 
-        return redirect(cp_route('email-subscribe.subscribers.index'))
+        return redirect(cp_route('postmaster.subscribers.index'))
             ->with('success', __('Subscriber deleted'));
     }
 

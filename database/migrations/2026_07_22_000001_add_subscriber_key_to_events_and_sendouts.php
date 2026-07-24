@@ -23,25 +23,25 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('email_subscribe_events', function (Blueprint $table): void {
+        Schema::table('postmaster_events', function (Blueprint $table): void {
             $table->string('subscriber_key')->nullable()->after('subscriber_id')->index();
             $table->string('terminal_key')->nullable()->after('type');
         });
 
-        DB::table('email_subscribe_events')
+        DB::table('postmaster_events')
             ->whereNull('subscriber_key')
             ->whereNotNull('subscriber_id')
             ->update(['subscriber_key' => DB::raw('subscriber_id')]);
 
-        Schema::table('email_subscribe_events', function (Blueprint $table): void {
+        Schema::table('postmaster_events', function (Blueprint $table): void {
             $table->dropForeign(['subscriber_id']);
         });
 
-        Schema::table('email_subscribe_events', function (Blueprint $table): void {
-            $table->unique('terminal_key', 'email_subscribe_events_terminal_unique');
+        Schema::table('postmaster_events', function (Blueprint $table): void {
+            $table->unique('terminal_key', 'postmaster_events_terminal_unique');
         });
 
-        Schema::table('email_subscribe_sendouts', function (Blueprint $table): void {
+        Schema::table('postmaster_sendouts', function (Blueprint $table): void {
             $table->json('recipient_keys')->nullable()->after('list_ids');
             $table->unsignedInteger('skip_count')->default(0)->after('fail_count');
         });
@@ -49,16 +49,16 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('email_subscribe_sendouts', function (Blueprint $table): void {
+        Schema::table('postmaster_sendouts', function (Blueprint $table): void {
             $table->dropColumn(['recipient_keys', 'skip_count']);
         });
 
-        Schema::table('email_subscribe_events', function (Blueprint $table): void {
-            $table->dropUnique('email_subscribe_events_terminal_unique');
+        Schema::table('postmaster_events', function (Blueprint $table): void {
+            $table->dropUnique('postmaster_events_terminal_unique');
             $table->dropColumn(['subscriber_key', 'terminal_key']);
             $table->foreign('subscriber_id')
                 ->references('id')
-                ->on('email_subscribe_subscribers')
+                ->on('postmaster_subscribers')
                 ->cascadeOnDelete();
         });
     }

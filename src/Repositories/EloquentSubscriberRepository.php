@@ -1,18 +1,18 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Repositories;
+namespace Darinlarimore\Postmaster\Repositories;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Models\MailingList;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
-use Darinlarimore\StatamicEmailSubscribe\Records\SubscriberRecord;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Contracts\SubscriberRepository;
+use Darinlarimore\Postmaster\Models\MailingList;
+use Darinlarimore\Postmaster\Models\Subscriber;
+use Darinlarimore\Postmaster\Records\SubscriberRecord;
 use DateTimeInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\LazyCollection;
 
 /**
- * The database storage driver: subscribers live in the email_subscribe_subscribers
+ * The database storage driver: subscribers live in the postmaster_subscribers
  * table via the Eloquent Subscriber model. This wraps that model with zero
  * behavioural change from the pre-refactor code.
  */
@@ -75,7 +75,7 @@ class EloquentSubscriberRepository implements SubscriberRepository
         }
 
         if ($listKey = $filters['list'] ?? null) {
-            $query->whereHas('lists', fn ($inner) => $inner->where('email_subscribe_lists.id', $listKey));
+            $query->whereHas('lists', fn ($inner) => $inner->where('postmaster_lists.id', $listKey));
         }
 
         return $query->latest()->paginate($filters['per_page'] ?? 50);
@@ -138,7 +138,7 @@ class EloquentSubscriberRepository implements SubscriberRepository
 
         return $subscriber->lists()
             ->wherePivotNull('unsubscribed_at')
-            ->pluck('email_subscribe_lists.id')
+            ->pluck('postmaster_lists.id')
             ->map(fn ($id): string => (string) $id)
             ->all();
     }

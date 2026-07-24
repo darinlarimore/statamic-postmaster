@@ -1,14 +1,14 @@
 <?php
 
-use Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web\EntryPreviewController;
-use Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web\PreferencesController;
-use Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web\SubscribeController;
-use Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web\UnsubscribeController;
-use Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web\VerifyController;
+use Darinlarimore\Postmaster\Http\Controllers\Web\EntryPreviewController;
+use Darinlarimore\Postmaster\Http\Controllers\Web\PreferencesController;
+use Darinlarimore\Postmaster\Http\Controllers\Web\SubscribeController;
+use Darinlarimore\Postmaster\Http\Controllers\Web\UnsubscribeController;
+use Darinlarimore\Postmaster\Http\Controllers\Web\VerifyController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix(config('email_subscribe.route_prefix', 'email-subscribe'))
-    ->name('email-subscribe.')
+Route::prefix(config('postmaster.route_prefix', 'postmaster'))
+    ->name('postmaster.')
     ->group(function () {
         Route::post('subscribe', [SubscribeController::class, 'store'])->name('subscribe');
 

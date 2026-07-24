@@ -1,16 +1,16 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Services;
+namespace Darinlarimore\Postmaster\Services;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListContract;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Mail\VerifyMail;
-use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
-use Darinlarimore\StatamicEmailSubscribe\Models\SubscriberEvent;
-use Darinlarimore\StatamicEmailSubscribe\Records\SubscriberRecord;
+use Darinlarimore\Postmaster\Contracts\ListContract;
+use Darinlarimore\Postmaster\Contracts\ListRepository;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Contracts\SubscriberRepository;
+use Darinlarimore\Postmaster\Mail\VerifyMail;
+use Darinlarimore\Postmaster\Models\Sendout;
+use Darinlarimore\Postmaster\Models\Subscriber;
+use Darinlarimore\Postmaster\Models\SubscriberEvent;
+use Darinlarimore\Postmaster\Records\SubscriberRecord;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 
@@ -77,7 +77,7 @@ class SubscriberService
 
         if ($record->status === Subscriber::STATUS_PENDING) {
             if ($needsVerification && ! $record->verified_at) {
-                Mail::mailer(config('email_subscribe.mailer'))
+                Mail::mailer(config('postmaster.mailer'))
                     ->to($saved->email)
                     ->send(new VerifyMail($saved));
             } else {

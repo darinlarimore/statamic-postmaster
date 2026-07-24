@@ -1,9 +1,9 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Support;
+namespace Darinlarimore\Postmaster\Support;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
-use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Models\Sendout;
 use Illuminate\Support\Facades\URL;
 
 /**
@@ -16,15 +16,15 @@ class Urls
     public static function verify(SubscriberContract $subscriber): string
     {
         return URL::temporarySignedRoute(
-            'email-subscribe.verify',
-            now()->addDays(config('email_subscribe.verification_expiry', 7)),
+            'postmaster.verify',
+            now()->addDays(config('postmaster.verification_expiry', 7)),
             ['subscriber' => $subscriber->id],
         );
     }
 
     public static function unsubscribe(SubscriberContract $subscriber, ?Sendout $sendout = null): string
     {
-        return URL::signedRoute('email-subscribe.unsubscribe', array_filter([
+        return URL::signedRoute('postmaster.unsubscribe', array_filter([
             'subscriber' => $subscriber->id,
             'sendout' => $sendout?->id,
         ]));
@@ -32,7 +32,7 @@ class Urls
 
     public static function oneClickUnsubscribe(SubscriberContract $subscriber, ?Sendout $sendout = null): string
     {
-        return URL::signedRoute('email-subscribe.unsubscribe.one-click', array_filter([
+        return URL::signedRoute('postmaster.unsubscribe.one-click', array_filter([
             'subscriber' => $subscriber->id,
             'sendout' => $sendout?->id,
         ]));
@@ -40,12 +40,12 @@ class Urls
 
     public static function preferences(SubscriberContract $subscriber): string
     {
-        return URL::signedRoute('email-subscribe.preferences', ['subscriber' => $subscriber->id]);
+        return URL::signedRoute('postmaster.preferences', ['subscriber' => $subscriber->id]);
     }
 
     public static function open(Sendout $sendout, SubscriberContract $subscriber): string
     {
-        return URL::signedRoute('email-subscribe.track.open', [
+        return URL::signedRoute('postmaster.track.open', [
             'sendout' => $sendout->id,
             'subscriber' => $subscriber->id,
         ]);
@@ -53,7 +53,7 @@ class Urls
 
     public static function click(int $linkId, SubscriberContract $subscriber): string
     {
-        return URL::signedRoute('email-subscribe.track.click', [
+        return URL::signedRoute('postmaster.track.click', [
             'link' => $linkId,
             'subscriber' => $subscriber->id,
         ]);

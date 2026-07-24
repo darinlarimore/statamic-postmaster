@@ -1,9 +1,9 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Records;
+namespace Darinlarimore\Postmaster\Records;
 
 use Carbon\CarbonInterface;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListContract;
+use Darinlarimore\Postmaster\Contracts\ListContract;
 
 /**
  * Content-driver carrier for a mailing list. Its key is its immutable handle.
@@ -34,6 +34,6 @@ class ListRecord implements ListContract
 
     public function usesDoubleOptIn(): bool
     {
-        return $this->double_opt_in ?? config('email_subscribe.double_opt_in', true);
+        return $this->double_opt_in ?? config('postmaster.double_opt_in', true);
     }
 }

@@ -2,7 +2,7 @@
 @section('title', $title)
 
 @section('content')
-    @include('email-subscribe::cp.partials.shell')
+    @include('postmaster::cp.partials.shell')
 
     <div class="es-wrap">
         <div class="es-card">
@@ -45,11 +45,11 @@
 
             <div class="es-actions" style="margin-top: 12px;">
                 @if (in_array($sendout->status, ['draft', 'cancelled']))
-                    <form method="POST" action="{{ cp_route('email-subscribe.sendouts.start', $sendout->id) }}" onsubmit="return confirm('{{ __('Send to all recipients now?') }}')" class="es-actions">
+                    <form method="POST" action="{{ cp_route('postmaster.sendouts.start', $sendout->id) }}" onsubmit="return confirm('{{ __('Send to all recipients now?') }}')" class="es-actions">
                         @csrf
                         <button type="submit" class="es-btn primary">{{ __('Send now') }}</button>
                     </form>
-                    <form method="POST" action="{{ cp_route('email-subscribe.sendouts.start', $sendout->id) }}" class="es-actions">
+                    <form method="POST" action="{{ cp_route('postmaster.sendouts.start', $sendout->id) }}" class="es-actions">
                         @csrf
                         <input class="es-input" style="width: auto;" type="datetime-local" name="send_at" required>
                         <button type="submit" class="es-btn">{{ __('Schedule') }}</button>
@@ -60,30 +60,30 @@
                 @endif
 
                 @if (in_array($sendout->status, ['pending', 'sending']))
-                    <form method="POST" action="{{ cp_route('email-subscribe.sendouts.pause', $sendout->id) }}">
+                    <form method="POST" action="{{ cp_route('postmaster.sendouts.pause', $sendout->id) }}">
                         @csrf
                         <button type="submit" class="es-btn">{{ __('Pause') }}</button>
                     </form>
                 @endif
 
                 @if (in_array($sendout->status, ['paused', 'failed']))
-                    <form method="POST" action="{{ cp_route('email-subscribe.sendouts.resume', $sendout->id) }}">
+                    <form method="POST" action="{{ cp_route('postmaster.sendouts.resume', $sendout->id) }}">
                         @csrf
                         <button type="submit" class="es-btn primary">{{ __('Resume') }}</button>
                     </form>
                 @endif
 
                 @if (! in_array($sendout->status, ['sent', 'draft', 'cancelled']))
-                    <form method="POST" action="{{ cp_route('email-subscribe.sendouts.cancel', $sendout->id) }}" onsubmit="return confirm('{{ __('Cancel this sendout?') }}')">
+                    <form method="POST" action="{{ cp_route('postmaster.sendouts.cancel', $sendout->id) }}" onsubmit="return confirm('{{ __('Cancel this sendout?') }}')">
                         @csrf
                         <button type="submit" class="es-btn danger">{{ __('Cancel sendout') }}</button>
                     </form>
                 @endif
 
-                <a class="es-btn" href="{{ cp_route('email-subscribe.sendouts.preview', $sendout->id) }}" target="_blank">{{ __('Preview') }}</a>
+                <a class="es-btn" href="{{ cp_route('postmaster.sendouts.preview', $sendout->id) }}" target="_blank">{{ __('Preview') }}</a>
 
                 @if (in_array($sendout->status, ['draft', 'cancelled', 'sent']))
-                    <form method="POST" action="{{ cp_route('email-subscribe.sendouts.destroy', $sendout->id) }}" onsubmit="return confirm('{{ __('Delete this sendout and its stats?') }}')">
+                    <form method="POST" action="{{ cp_route('postmaster.sendouts.destroy', $sendout->id) }}" onsubmit="return confirm('{{ __('Delete this sendout and its stats?') }}')">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="es-btn danger">{{ __('Delete') }}</button>
@@ -94,7 +94,7 @@
 
         <div class="es-card">
             <h2>{{ __('Send a test') }}</h2>
-            <form method="POST" action="{{ cp_route('email-subscribe.sendouts.test', $sendout->id) }}" class="es-actions">
+            <form method="POST" action="{{ cp_route('postmaster.sendouts.test', $sendout->id) }}" class="es-actions">
                 @csrf
                 <input class="es-input" style="max-width: 380px;" type="text" name="emails" placeholder="you@example.com, teammate@example.com" required>
                 <button type="submit" class="es-btn">{{ __('Send test email') }}</button>

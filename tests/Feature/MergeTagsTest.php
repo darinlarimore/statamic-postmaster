@@ -1,26 +1,26 @@
 <?php
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Mail\CampaignMail;
-use Darinlarimore\StatamicEmailSubscribe\Models\MailingList;
-use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
-use Darinlarimore\StatamicEmailSubscribe\Support\CampaignRenderer;
-use Darinlarimore\StatamicEmailSubscribe\Support\MergeTags;
+use Darinlarimore\Postmaster\Contracts\ListRepository;
+use Darinlarimore\Postmaster\Contracts\SubscriberRepository;
+use Darinlarimore\Postmaster\Mail\CampaignMail;
+use Darinlarimore\Postmaster\Models\MailingList;
+use Darinlarimore\Postmaster\Models\Sendout;
+use Darinlarimore\Postmaster\Models\Subscriber;
+use Darinlarimore\Postmaster\Support\CampaignRenderer;
+use Darinlarimore\Postmaster\Support\MergeTags;
 use Statamic\Facades\Blueprint;
 use Statamic\Facades\Entry;
 use Statamic\Facades\User;
 
 beforeEach(function () {
     $this->useDriver('database');
-    $this->artisan('email-subscribe:scaffold-newsletter');
+    $this->artisan('postmaster:scaffold-newsletter');
 });
 
 // The subscriber blueprint persists in the testbench skeleton between runs -
 // strip the company field the available-tags test adds, even if it failed.
 afterEach(function () {
-    $handle = config('email_subscribe.storage.collections.subscribers', 'email_subscribers');
+    $handle = config('postmaster.storage.collections.subscribers', 'postmaster_subscribers');
     $blueprint = Blueprint::find('collections.'.$handle.'.'.$handle);
 
     if (! $blueprint) {
@@ -125,7 +125,7 @@ test('blueprint-added subscriber fields resolve under the content driver', funct
     $key = $repository->keyForEmail('custom-jane@example.com');
 
     $entry = Entry::make()
-        ->collection('email_subscribers')
+        ->collection('postmaster_subscribers')
         ->id($key)
         ->slug($key)
         ->data([
@@ -149,7 +149,7 @@ test('available tags list core tags plus custom subscriber blueprint fields', fu
     expect($tags)->toContain('email', 'first_name', 'last_name', 'full_name', 'unsubscribe_url', 'preferences_url');
     expect($tags)->not->toContain('sub_status', 'subscribe_ip', 'legacy_id');
 
-    $handle = config('email_subscribe.storage.collections.subscribers', 'email_subscribers');
+    $handle = config('postmaster.storage.collections.subscribers', 'postmaster_subscribers');
     $blueprint = Blueprint::find('collections.'.$handle.'.'.$handle);
     $contents = $blueprint->contents();
     $fields = collect($contents['tabs']['main']['sections'][0]['fields']);
@@ -173,7 +173,7 @@ test('the entry edit blueprint lists available merge tags', function () {
 
 function addCompanyToSubscriberBlueprint(): void
 {
-    $handle = config('email_subscribe.storage.collections.subscribers', 'email_subscribers');
+    $handle = config('postmaster.storage.collections.subscribers', 'postmaster_subscribers');
     $blueprint = Blueprint::find('collections.'.$handle.'.'.$handle);
     $contents = $blueprint->contents();
     $fields = collect($contents['tabs']['main']['sections'][0]['fields']);
@@ -188,7 +188,7 @@ test('subscribe forms capture blueprint-defined custom fields and ignore the res
     addCompanyToSubscriberBlueprint();
     MailingList::create(['title' => 'Signup', 'handle' => 'signup']);
 
-    $this->post('/email-subscribe/subscribe', [
+    $this->post('/postmaster/subscribe', [
         'email' => 'custom@example.com',
         'first_name' => 'Custom',
         'company' => 'Acme Co',
@@ -210,7 +210,7 @@ test('csv imports capture custom field columns', function () {
     $csv = tempnam(sys_get_temp_dir(), 'es-import').'.csv';
     file_put_contents($csv, "email,first_name,company,unknown_column\nimported@example.com,Immy,Import Co,nope\n");
 
-    $this->artisan('email-subscribe:import', ['file' => $csv, '--list' => 'import-list', '--subscribed' => true])
+    $this->artisan('postmaster:import', ['file' => $csv, '--list' => 'import-list', '--subscribed' => true])
         ->assertSuccessful();
 
     $subscriber = app(SubscriberRepository::class)->findByEmail('imported@example.com');
@@ -222,7 +222,7 @@ test('csv imports capture custom field columns', function () {
 });
 
 test('the subscriber page shows custom field values', function () {
-    config()->set('email_subscribe.custom_fields', ['company']);
+    config()->set('postmaster.custom_fields', ['company']);
     $this->actingAs(tap(User::make()->makeSuper()->email('viewer@example.com'))->save());
 
     $subscriber = Subscriber::create([
@@ -231,14 +231,14 @@ test('the subscriber page shows custom field values', function () {
         'fields' => ['company' => 'Visible Co'],
     ]);
 
-    $this->get(cp_route('email-subscribe.subscribers.show', $subscriber->id))
+    $this->get(cp_route('postmaster.subscribers.show', $subscriber->id))
         ->assertOk()
         ->assertSee('Company')
         ->assertSee('Visible Co');
 });
 
 test('configured custom_fields supplement the blueprint for the whitelist', function () {
-    config()->set('email_subscribe.custom_fields', ['city']);
+    config()->set('postmaster.custom_fields', ['city']);
 
     expect(MergeTags::customFieldHandles())->toContain('city');
     expect(MergeTags::available())->toContain('city');
@@ -251,7 +251,7 @@ test('captured custom fields persist as top-level entry data under the content d
         'title' => 'Content Signup', 'handle' => 'content-signup', 'double_opt_in' => false,
     ]);
 
-    $this->post('/email-subscribe/subscribe', [
+    $this->post('/postmaster/subscribe', [
         'email' => 'toplevel@example.com',
         'company' => 'Top Level Co',
         'lists' => 'content-signup',

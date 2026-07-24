@@ -1,13 +1,13 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Models;
+namespace Darinlarimore\Postmaster\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Link extends Model
 {
-    protected $table = 'email_subscribe_links';
+    protected $table = 'postmaster_links';
 
     protected $guarded = [];
 

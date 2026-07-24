@@ -1,4 +1,4 @@
-@extends('email-subscribe::web.layout')
+@extends('postmaster::web.layout')
 
 @section('title', __('Unsubscribed'))
 

@@ -1,13 +1,13 @@
 <?php
 
-use Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Cp\DashboardController;
-use Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Cp\ListsController;
-use Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Cp\SendoutsController;
-use Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Cp\SubscribersController;
+use Darinlarimore\Postmaster\Http\Controllers\Cp\DashboardController;
+use Darinlarimore\Postmaster\Http\Controllers\Cp\ListsController;
+use Darinlarimore\Postmaster\Http\Controllers\Cp\SendoutsController;
+use Darinlarimore\Postmaster\Http\Controllers\Cp\SubscribersController;
 use Illuminate\Support\Facades\Route;
 
-Route::name('email-subscribe.')
-    ->prefix('email-subscribe')
+Route::name('postmaster.')
+    ->prefix('postmaster')
     ->middleware('can:view email subscribe')
     ->group(function () {
         Route::get('/', DashboardController::class)->name('index');

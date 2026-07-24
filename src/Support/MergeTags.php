@@ -1,8 +1,8 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Support;
+namespace Darinlarimore\Postmaster\Support;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Statamic\Facades\Blueprint;
@@ -114,7 +114,7 @@ class MergeTags
     /**
      * Custom personalization field handles: the subscriber blueprint is the
      * schema - add a field there and it becomes capturable (forms, imports)
-     * and taggable. The email_subscribe.custom_fields config supplements it
+     * and taggable. The postmaster.custom_fields config supplements it
      * for database-driver sites, which have no blueprint to read.
      *
      * @return Collection<int, string>
@@ -123,11 +123,11 @@ class MergeTags
     {
         $core = collect(array_keys(self::CORE));
 
-        $handle = config('email_subscribe.storage.collections.subscribers', 'email_subscribers');
+        $handle = config('postmaster.storage.collections.subscribers', 'postmaster_subscribers');
         $blueprint = Blueprint::find('collections.'.$handle.'.'.$handle);
 
         return ($blueprint ? $blueprint->fields()->all()->keys() : collect())
-            ->merge(config('email_subscribe.custom_fields', []))
+            ->merge(config('postmaster.custom_fields', []))
             ->reject(fn (string $field) => in_array($field, self::INTERNAL) || $core->contains($field))
             ->unique()
             ->values();

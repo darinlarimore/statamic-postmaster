@@ -1,12 +1,12 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Services;
+namespace Darinlarimore\Postmaster\Services;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListContract;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
-use Darinlarimore\StatamicEmailSubscribe\Records\SubscriberRecord;
-use Darinlarimore\StatamicEmailSubscribe\Support\MergeTags;
+use Darinlarimore\Postmaster\Contracts\ListContract;
+use Darinlarimore\Postmaster\Contracts\SubscriberRepository;
+use Darinlarimore\Postmaster\Models\Subscriber;
+use Darinlarimore\Postmaster\Records\SubscriberRecord;
+use Darinlarimore\Postmaster\Support\MergeTags;
 use InvalidArgumentException;
 
 /**

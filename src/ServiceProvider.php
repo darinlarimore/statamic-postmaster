@@ -1,15 +1,15 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe;
+namespace Darinlarimore\Postmaster;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Repositories\ContentListRepository;
-use Darinlarimore\StatamicEmailSubscribe\Repositories\ContentSubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Repositories\EloquentListRepository;
-use Darinlarimore\StatamicEmailSubscribe\Repositories\EloquentSubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Support\Diagnostics;
-use Darinlarimore\StatamicEmailSubscribe\Support\Storage;
+use Darinlarimore\Postmaster\Contracts\ListRepository;
+use Darinlarimore\Postmaster\Contracts\SubscriberRepository;
+use Darinlarimore\Postmaster\Repositories\ContentListRepository;
+use Darinlarimore\Postmaster\Repositories\ContentSubscriberRepository;
+use Darinlarimore\Postmaster\Repositories\EloquentListRepository;
+use Darinlarimore\Postmaster\Repositories\EloquentSubscriberRepository;
+use Darinlarimore\Postmaster\Support\Diagnostics;
+use Darinlarimore\Postmaster\Support\Storage;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
@@ -25,7 +25,7 @@ use Statamic\Statamic;
 class ServiceProvider extends AddonServiceProvider
 {
     protected $tags = [
-        Tags\EmailSubscribeTag::class,
+        Tags\PostmasterTag::class,
     ];
 
     protected $routes = [
@@ -46,9 +46,9 @@ class ServiceProvider extends AddonServiceProvider
 
     /**
      * Matches the view namespace instead of the composer package slug, so
-     * blueprints import the fieldset as email-subscribe::email_blocks.
+     * blueprints import the fieldset as postmaster::email_blocks.
      */
-    protected $fieldsetNamespace = 'email-subscribe';
+    protected $fieldsetNamespace = 'postmaster';
 
     protected $middlewareGroups = [
         'statamic.cp' => [
@@ -60,7 +60,7 @@ class ServiceProvider extends AddonServiceProvider
     {
         parent::register();
 
-        $this->mergeConfigFrom(__DIR__.'/../config/email_subscribe.php', 'email_subscribe');
+        $this->mergeConfigFrom(__DIR__.'/../config/postmaster.php', 'postmaster');
 
         Diagnostics::boot();
 
@@ -75,7 +75,7 @@ class ServiceProvider extends AddonServiceProvider
 
     public function bootAddon()
     {
-        $this->mergeConfigFrom(__DIR__.'/../config/email_subscribe.php', 'email_subscribe');
+        $this->mergeConfigFrom(__DIR__.'/../config/postmaster.php', 'postmaster');
 
         Diagnostics::boot();
 
@@ -88,28 +88,28 @@ class ServiceProvider extends AddonServiceProvider
         ])->group(__DIR__.'/../routes/stateless.php');
 
         $this->publishes([
-            __DIR__.'/../config/email_subscribe.php' => config_path('email_subscribe.php'),
-        ], 'email-subscribe-config');
+            __DIR__.'/../config/postmaster.php' => config_path('postmaster.php'),
+        ], 'postmaster-config');
 
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
 
-        $this->loadViewsFrom(__DIR__.'/../resources/views', 'email-subscribe');
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'postmaster');
 
         $this->publishes([
-            __DIR__.'/../resources/views/emails' => resource_path('views/vendor/email-subscribe/emails'),
-        ], 'email-subscribe-views');
+            __DIR__.'/../resources/views/emails' => resource_path('views/vendor/postmaster/emails'),
+        ], 'postmaster-views');
 
         // A Claude Code skill teaching agents this addon's workflow, published
         // into the project so a buyer's AI assistant knows how to drive it.
         $this->publishes([
-            __DIR__.'/../resources/skills/email-subscribe' => base_path('.claude/skills/email-subscribe'),
-        ], 'email-subscribe-skill');
+            __DIR__.'/../resources/skills/postmaster' => base_path('.claude/skills/postmaster'),
+        ], 'postmaster-skill');
 
         // statamic:install runs on every composer install/update, so publish
         // without --force - existing (possibly customized) files are kept.
         Statamic::afterInstalled(function ($command) {
-            $command->call('vendor:publish', ['--tag' => 'email-subscribe-views']);
-            $command->call('vendor:publish', ['--tag' => 'email-subscribe-skill']);
+            $command->call('vendor:publish', ['--tag' => 'postmaster-views']);
+            $command->call('vendor:publish', ['--tag' => 'postmaster-skill']);
         });
 
         if ($this->driver() === 'content') {
@@ -160,7 +160,7 @@ class ServiceProvider extends AddonServiceProvider
             $event->blueprint->ensureField('email_from_name', [
                 'type' => 'text',
                 'display' => __('From Name'),
-                'placeholder' => config('email_subscribe.from.name'),
+                'placeholder' => config('postmaster.from.name'),
                 'instructions' => __('Blank uses the site default.'),
             ], 'sidebar');
 
@@ -168,7 +168,7 @@ class ServiceProvider extends AddonServiceProvider
                 'type' => 'text',
                 'input_type' => 'email',
                 'display' => __('From Email'),
-                'placeholder' => config('email_subscribe.from.email'),
+                'placeholder' => config('postmaster.from.email'),
                 'instructions' => __('Blank uses the site default.'),
             ], 'sidebar');
 
@@ -176,7 +176,7 @@ class ServiceProvider extends AddonServiceProvider
                 'type' => 'text',
                 'input_type' => 'email',
                 'display' => __('Reply To'),
-                'placeholder' => config('email_subscribe.reply_to') ?: config('email_subscribe.from.email'),
+                'placeholder' => config('postmaster.reply_to') ?: config('postmaster.from.email'),
                 'instructions' => __('Blank uses the site default.'),
             ], 'sidebar');
 
@@ -184,7 +184,7 @@ class ServiceProvider extends AddonServiceProvider
                 ->mapWithKeys(fn ($list) => [(string) $list->getKey() => $list->title])
                 ->all();
 
-            $event->blueprint->ensureField('email_lists', [
+            $event->blueprint->ensureField('postmaster_lists', [
                 'type' => 'checkboxes',
                 'display' => __('Send to lists'),
                 'instructions' => __('Recipients for sendouts created from this entry.'),
@@ -248,7 +248,7 @@ class ServiceProvider extends AddonServiceProvider
     {
         Event::listen(EntrySaved::class, function (EntrySaved $event): void {
             $entry = $event->entry;
-            $listsCollection = config('email_subscribe.storage.collections.lists', 'email_lists');
+            $listsCollection = config('postmaster.storage.collections.lists', 'postmaster_lists');
 
             if ($entry->collectionHandle() !== $listsCollection || $entry->get('handle')) {
                 return;
@@ -267,7 +267,7 @@ class ServiceProvider extends AddonServiceProvider
     protected function bootSubscriberEntryFields(): void
     {
         Event::listen(EntryBlueprintFound::class, function (EntryBlueprintFound $event): void {
-            $subscribersHandle = config('email_subscribe.storage.collections.subscribers', 'email_subscribers');
+            $subscribersHandle = config('postmaster.storage.collections.subscribers', 'postmaster_subscribers');
 
             if ($event->blueprint->namespace() !== 'collections.'.$subscribersHandle) {
                 return;
@@ -351,7 +351,7 @@ class ServiceProvider extends AddonServiceProvider
     {
         Event::listen(EntrySaved::class, function (EntrySaved $event): void {
             $entry = $event->entry;
-            $subscribersHandle = config('email_subscribe.storage.collections.subscribers', 'email_subscribers');
+            $subscribersHandle = config('postmaster.storage.collections.subscribers', 'postmaster_subscribers');
 
             if ($entry->collectionHandle() !== $subscribersHandle) {
                 return;
@@ -415,7 +415,7 @@ class ServiceProvider extends AddonServiceProvider
 
     protected function driver(): string
     {
-        return config('email_subscribe.storage.driver', 'content');
+        return config('postmaster.storage.driver', 'content');
     }
 
     /**
@@ -469,9 +469,9 @@ class ServiceProvider extends AddonServiceProvider
     protected function bootPermissions()
     {
         Permission::extend(function () {
-            Permission::group('email_subscribe', 'Email Subscribe', function () {
+            Permission::group('postmaster', 'Postmaster', function () {
                 Permission::register('view email subscribe')
-                    ->label('View Email Subscribe')
+                    ->label('View Postmaster')
                     ->children([
                         Permission::register('edit email subscribe lists')->label('Manage Lists'),
                         Permission::register('edit email subscribe subscribers')->label('Manage Subscribers'),
@@ -484,18 +484,18 @@ class ServiceProvider extends AddonServiceProvider
     protected function bootNav()
     {
         Nav::extend(function ($nav) {
-            $nav->create('Email Subscribe')
+            $nav->create('Postmaster')
                 ->section('Tools')
                 ->can('view email subscribe')
-                ->route('email-subscribe.index')
+                ->route('postmaster.index')
                 ->icon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.75" y="4.75" width="18.5" height="14.5" rx="2"/><path d="m3 6.5 9 6.5 9-6.5"/></svg>');
 
             // The content driver's storage collections are internals - people
             // manage subscribers and lists through the addon's own pages, so
             // hide the raw collections from the Content nav.
             if ($this->driver() === 'content') {
-                foreach (['subscribers' => 'email_subscribers', 'lists' => 'email_lists'] as $key => $default) {
-                    $handle = config('email_subscribe.storage.collections.'.$key, $default);
+                foreach (['subscribers' => 'postmaster_subscribers', 'lists' => 'postmaster_lists'] as $key => $default) {
+                    $handle = config('postmaster.storage.collections.'.$key, $default);
 
                     if ($collection = Collection::findByHandle($handle)) {
                         $nav->remove('Content', 'Collections', $collection->title());

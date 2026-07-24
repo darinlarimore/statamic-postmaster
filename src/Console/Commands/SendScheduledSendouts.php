@@ -1,13 +1,13 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Console\Commands;
+namespace Darinlarimore\Postmaster\Console\Commands;
 
-use Darinlarimore\StatamicEmailSubscribe\Services\SendoutService;
+use Darinlarimore\Postmaster\Services\SendoutService;
 use Illuminate\Console\Command;
 
 class SendScheduledSendouts extends Command
 {
-    protected $signature = 'email-subscribe:send-scheduled';
+    protected $signature = 'postmaster:send-scheduled';
 
     protected $description = 'Queue any scheduled sendouts whose send time has arrived';
 

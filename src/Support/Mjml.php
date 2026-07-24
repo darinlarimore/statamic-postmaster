@@ -1,6 +1,6 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Support;
+namespace Darinlarimore\Postmaster\Support;
 
 use Illuminate\Support\Facades\Http;
 use Spatie\Mjml\Mjml as SpatieMjml;
@@ -18,7 +18,7 @@ class Mjml
             return $content;
         }
 
-        return match (config('email_subscribe.mjml.strategy', 'binary')) {
+        return match (config('postmaster.mjml.strategy', 'binary')) {
             'api' => static::compileViaApi($content),
             'none' => $content,
             default => static::compileViaBinary($content),
@@ -33,8 +33,8 @@ class Mjml
     protected static function compileViaApi(string $content): string
     {
         $response = Http::withBasicAuth(
-            config('email_subscribe.mjml.api_id'),
-            config('email_subscribe.mjml.api_secret'),
+            config('postmaster.mjml.api_id'),
+            config('postmaster.mjml.api_secret'),
         )->post('https://api.mjml.io/v1/render', ['mjml' => $content]);
 
         $response->throw();

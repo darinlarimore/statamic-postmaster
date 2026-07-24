@@ -1,13 +1,13 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Tests\Support;
+namespace Darinlarimore\Postmaster\Tests\Support;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListContract;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
-use Darinlarimore\StatamicEmailSubscribe\Records\SubscriberRecord;
+use Darinlarimore\Postmaster\Contracts\ListContract;
+use Darinlarimore\Postmaster\Contracts\ListRepository;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Contracts\SubscriberRepository;
+use Darinlarimore\Postmaster\Models\Subscriber;
+use Darinlarimore\Postmaster\Records\SubscriberRecord;
 
 /**
  * Driver-aware test data factories. Every test body creates lists and

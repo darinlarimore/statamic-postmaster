@@ -1,14 +1,14 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Models;
+namespace Darinlarimore\Postmaster\Models;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListContract;
+use Darinlarimore\Postmaster\Contracts\ListContract;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class MailingList extends Model implements ListContract
 {
-    protected $table = 'email_subscribe_lists';
+    protected $table = 'postmaster_lists';
 
     protected $guarded = [];
 
@@ -18,7 +18,7 @@ class MailingList extends Model implements ListContract
 
     public function subscribers(): BelongsToMany
     {
-        return $this->belongsToMany(Subscriber::class, 'email_subscribe_list_subscriber', 'list_id', 'subscriber_id')
+        return $this->belongsToMany(Subscriber::class, 'postmaster_list_subscriber', 'list_id', 'subscriber_id')
             ->withPivot(['subscribed_at', 'unsubscribed_at'])
             ->withTimestamps();
     }
@@ -32,7 +32,7 @@ class MailingList extends Model implements ListContract
 
     public function usesDoubleOptIn(): bool
     {
-        return $this->double_opt_in ?? config('email_subscribe.double_opt_in', true);
+        return $this->double_opt_in ?? config('postmaster.double_opt_in', true);
     }
 
     public function getKey(): string

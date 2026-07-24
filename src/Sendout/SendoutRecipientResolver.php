@@ -1,12 +1,12 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Sendout;
+namespace Darinlarimore\Postmaster\Sendout;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Models\SubscriberEvent;
-use Darinlarimore\StatamicEmailSubscribe\Support\Diagnostics;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Contracts\SubscriberRepository;
+use Darinlarimore\Postmaster\Models\Sendout;
+use Darinlarimore\Postmaster\Models\SubscriberEvent;
+use Darinlarimore\Postmaster\Support\Diagnostics;
 
 /**
  * Resolves a sendout's recipients across the content/database split. The

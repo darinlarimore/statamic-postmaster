@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('email_subscribe_lists', function (Blueprint $table) {
+        Schema::create('postmaster_lists', function (Blueprint $table) {
             $table->id();
             $table->string('handle')->unique();
             $table->string('title');
@@ -16,7 +16,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('email_subscribe_subscribers', function (Blueprint $table) {
+        Schema::create('postmaster_subscribers', function (Blueprint $table) {
             $table->id();
             $table->string('email')->unique();
             $table->string('first_name')->nullable();
@@ -34,10 +34,10 @@ return new class extends Migration
             $table->index('status');
         });
 
-        Schema::create('email_subscribe_list_subscriber', function (Blueprint $table) {
+        Schema::create('postmaster_list_subscriber', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('list_id')->constrained('email_subscribe_lists')->cascadeOnDelete();
-            $table->foreignId('subscriber_id')->constrained('email_subscribe_subscribers')->cascadeOnDelete();
+            $table->foreignId('list_id')->constrained('postmaster_lists')->cascadeOnDelete();
+            $table->foreignId('subscriber_id')->constrained('postmaster_subscribers')->cascadeOnDelete();
             $table->timestamp('subscribed_at')->nullable();
             $table->timestamp('unsubscribed_at')->nullable();
             $table->timestamps();
@@ -45,7 +45,7 @@ return new class extends Migration
             $table->unique(['list_id', 'subscriber_id']);
         });
 
-        Schema::create('email_subscribe_sendouts', function (Blueprint $table) {
+        Schema::create('postmaster_sendouts', function (Blueprint $table) {
             $table->id();
             $table->string('title');
             $table->string('subject');
@@ -69,17 +69,17 @@ return new class extends Migration
             $table->index('status');
         });
 
-        Schema::create('email_subscribe_links', function (Blueprint $table) {
+        Schema::create('postmaster_links', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('sendout_id')->constrained('email_subscribe_sendouts')->cascadeOnDelete();
+            $table->foreignId('sendout_id')->constrained('postmaster_sendouts')->cascadeOnDelete();
             $table->string('url', 2048);
             $table->timestamps();
         });
 
-        Schema::create('email_subscribe_events', function (Blueprint $table) {
+        Schema::create('postmaster_events', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('sendout_id')->nullable()->constrained('email_subscribe_sendouts')->cascadeOnDelete();
-            $table->foreignId('subscriber_id')->nullable()->constrained('email_subscribe_subscribers')->cascadeOnDelete();
+            $table->foreignId('sendout_id')->nullable()->constrained('postmaster_sendouts')->cascadeOnDelete();
+            $table->foreignId('subscriber_id')->nullable()->constrained('postmaster_subscribers')->cascadeOnDelete();
             $table->string('type'); // sent, open, click, bounce, complaint, unsubscribe
             $table->string('url', 2048)->nullable(); // clicked link
             $table->string('detail')->nullable(); // bounce reason etc.
@@ -92,11 +92,11 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('email_subscribe_events');
-        Schema::dropIfExists('email_subscribe_links');
-        Schema::dropIfExists('email_subscribe_sendouts');
-        Schema::dropIfExists('email_subscribe_list_subscriber');
-        Schema::dropIfExists('email_subscribe_subscribers');
-        Schema::dropIfExists('email_subscribe_lists');
+        Schema::dropIfExists('postmaster_events');
+        Schema::dropIfExists('postmaster_links');
+        Schema::dropIfExists('postmaster_sendouts');
+        Schema::dropIfExists('postmaster_list_subscriber');
+        Schema::dropIfExists('postmaster_subscribers');
+        Schema::dropIfExists('postmaster_lists');
     }
 };

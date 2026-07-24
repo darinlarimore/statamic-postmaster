@@ -1,10 +1,10 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Cp;
+namespace Darinlarimore\Postmaster\Http\Controllers\Cp;
 
-use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Services\SendoutService;
-use Darinlarimore\StatamicEmailSubscribe\Support\CampaignRenderer;
+use Darinlarimore\Postmaster\Models\Sendout;
+use Darinlarimore\Postmaster\Services\SendoutService;
+use Darinlarimore\Postmaster\Support\CampaignRenderer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Statamic\Contracts\Entries\Entry;
@@ -16,7 +16,7 @@ class SendoutsController extends CpController
 {
     public function index()
     {
-        return view('email-subscribe::cp.sendouts', [
+        return view('postmaster::cp.sendouts', [
             'title' => 'Sendouts',
             'sendouts' => Sendout::latest()->paginate(25),
             'pendingEntries' => $this->entriesAwaitingSendout(),
@@ -65,7 +65,7 @@ class SendoutsController extends CpController
 
     public function show(Sendout $sendout)
     {
-        return view('email-subscribe::cp.sendout', [
+        return view('postmaster::cp.sendout', [
             'title' => $sendout->title,
             'sendout' => $sendout,
             'stats' => $sendout->stats(),
@@ -87,7 +87,7 @@ class SendoutsController extends CpController
 
         $sendout->delete();
 
-        return redirect(cp_route('email-subscribe.sendouts.index'))
+        return redirect(cp_route('postmaster.sendouts.index'))
             ->with('success', __('Sendout deleted'));
     }
 

@@ -1,14 +1,14 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Services;
+namespace Darinlarimore\Postmaster\Services;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Jobs\ProcessSendoutBatch;
-use Darinlarimore\StatamicEmailSubscribe\Mail\CampaignMail;
-use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Records\SubscriberRecord;
-use Darinlarimore\StatamicEmailSubscribe\Support\CampaignRenderer;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Contracts\SubscriberRepository;
+use Darinlarimore\Postmaster\Jobs\ProcessSendoutBatch;
+use Darinlarimore\Postmaster\Mail\CampaignMail;
+use Darinlarimore\Postmaster\Models\Sendout;
+use Darinlarimore\Postmaster\Records\SubscriberRecord;
+use Darinlarimore\Postmaster\Support\CampaignRenderer;
 use Illuminate\Support\Facades\Mail;
 
 class SendoutService
@@ -137,7 +137,7 @@ class SendoutService
 
             $personalized = $this->renderer->personalize($html, $sendout, $subscriber, tracking: false);
 
-            Mail::mailer(config('email_subscribe.mailer'))
+            Mail::mailer(config('postmaster.mailer'))
                 ->to($email)
                 ->send(new CampaignMail($sendout, $subscriber, $personalized, isTest: true));
         }
@@ -150,7 +150,7 @@ class SendoutService
     {
         $html = $this->renderer->personalize($sendout->html, $sendout, $subscriber);
 
-        Mail::mailer(config('email_subscribe.mailer'))
+        Mail::mailer(config('postmaster.mailer'))
             ->to($subscriber->email, $subscriber->fullName())
             ->send(new CampaignMail($sendout, $subscriber, $html));
     }
@@ -158,7 +158,7 @@ class SendoutService
     protected function dispatchBatchJob(Sendout $sendout): void
     {
         ProcessSendoutBatch::dispatch($sendout->id)
-            ->onConnection(config('email_subscribe.sendout.connection'))
-            ->onQueue(config('email_subscribe.sendout.queue', 'default'));
+            ->onConnection(config('postmaster.sendout.connection'))
+            ->onQueue(config('postmaster.sendout.queue', 'default'));
     }
 }

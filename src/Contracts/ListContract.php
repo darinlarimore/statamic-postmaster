@@ -1,6 +1,6 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Contracts;
+namespace Darinlarimore\Postmaster\Contracts;
 
 /**
  * The shared surface both the Eloquent MailingList model (database driver) and

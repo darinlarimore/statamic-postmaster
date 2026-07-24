@@ -120,4 +120,4 @@ fields:
       type: text
       display: 'Email Template'
       placeholder: 'e.g. emails.my-newsletter'
-      instructions: 'Advanced: blank renders the built-in template, customizable in `resources/views/vendor/email-subscribe/emails/` (layout in `default.antlers.html`, one partial per block type in `blocks/`). Or enter the view name of your own MJML/HTML template - `emails.my-newsletter` renders `resources/views/emails/my-newsletter.antlers.html`.'
+      instructions: 'Advanced: blank renders the built-in template, customizable in `resources/views/vendor/postmaster/emails/` (layout in `default.antlers.html`, one partial per block type in `blocks/`). Or enter the view name of your own MJML/HTML template - `emails.my-newsletter` renders `resources/views/emails/my-newsletter.antlers.html`.'

@@ -1,6 +1,6 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Support;
+namespace Darinlarimore\Postmaster\Support;
 
 use Statamic\Facades\Blueprint;
 use Statamic\Facades\Collection;
@@ -23,11 +23,11 @@ class Storage
 
     protected static function ensureSubscribers(): void
     {
-        $handle = config('email_subscribe.storage.collections.subscribers', 'email_subscribers');
+        $handle = config('postmaster.storage.collections.subscribers', 'postmaster_subscribers');
 
         if (! Collection::handleExists($handle)) {
             Collection::make($handle)
-                ->title('Email Subscribers')
+                ->title('Postmasterrs')
                 ->dated(true)
                 ->revisionsEnabled(false)
                 ->save();
@@ -129,7 +129,7 @@ class Storage
 
     protected static function ensureLists(): void
     {
-        $handle = config('email_subscribe.storage.collections.lists', 'email_lists');
+        $handle = config('postmaster.storage.collections.lists', 'postmaster_lists');
 
         if (! Collection::handleExists($handle)) {
             Collection::make($handle)

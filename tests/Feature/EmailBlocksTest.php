@@ -1,9 +1,9 @@
 <?php
 
-use Darinlarimore\StatamicEmailSubscribe\Models\Link;
-use Darinlarimore\StatamicEmailSubscribe\Models\MailingList;
-use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Support\CampaignRenderer;
+use Darinlarimore\Postmaster\Models\Link;
+use Darinlarimore\Postmaster\Models\MailingList;
+use Darinlarimore\Postmaster\Models\Sendout;
+use Darinlarimore\Postmaster\Support\CampaignRenderer;
 use Illuminate\Support\Facades\Storage;
 use Statamic\Facades\AssetContainer;
 use Statamic\Facades\Blueprint;
@@ -32,7 +32,7 @@ function makeBlocksEntry(array $blocks, string $slug = 'welcome'): mixed
                             [
                                 'fields' => [
                                     ['handle' => 'title', 'field' => ['type' => 'text']],
-                                    ['import' => 'email-subscribe::email_blocks'],
+                                    ['import' => 'postmaster::email_blocks'],
                                 ],
                             ],
                         ],
@@ -71,7 +71,7 @@ beforeEach(function () {
 });
 
 test('the email_blocks fieldset is registered under the addon namespace', function () {
-    $fieldset = Fieldset::find('email-subscribe::email_blocks');
+    $fieldset = Fieldset::find('postmaster::email_blocks');
 
     expect($fieldset)->not->toBeNull();
 
@@ -177,7 +177,7 @@ test('the entry live-preview route renders the email with sample data', function
         ['type' => 'button', 'enabled' => true, 'label' => 'Click', 'url' => 'https://example.com/tracked'],
     ], 'live-preview');
 
-    $response = $this->get('/email-subscribe/entry-preview/'.$entry->id())->assertOk();
+    $response = $this->get('/postmaster/entry-preview/'.$entry->id())->assertOk();
 
     expect($response->getContent())->toContain('Live Preview Heading');
     expect($response->getContent())->toContain('subscriber@example.com');
@@ -186,7 +186,7 @@ test('the entry live-preview route renders the email with sample data', function
     // Ephemeral renders must not mint click-tracking links.
     expect(Link::count())->toBe(0);
 
-    $this->get('/email-subscribe/entry-preview/not-a-real-entry')->assertNotFound();
+    $this->get('/postmaster/entry-preview/not-a-real-entry')->assertNotFound();
 });
 
 test('the entry live-preview route rejects visitors without CP access', function () {
@@ -194,12 +194,12 @@ test('the entry live-preview route rejects visitors without CP access', function
         ['type' => 'heading', 'enabled' => true, 'text' => 'Secret Draft', 'size' => 'h2'],
     ], 'guarded-preview');
 
-    $this->get('/email-subscribe/entry-preview/'.$entry->id())->assertForbidden();
+    $this->get('/postmaster/entry-preview/'.$entry->id())->assertForbidden();
 });
 
 test('sender fields are injected with the site defaults as placeholders', function () {
-    config()->set('email_subscribe.from.email', 'news@daring.test');
-    config()->set('email_subscribe.from.name', 'Daring News');
+    config()->set('postmaster.from.email', 'news@daring.test');
+    config()->set('postmaster.from.name', 'Daring News');
 
     $entry = makeBlocksEntry([], 'placeholder-check');
     $blueprint = $entry->blueprint();

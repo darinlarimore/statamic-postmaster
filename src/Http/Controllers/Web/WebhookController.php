@@ -1,9 +1,9 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web;
+namespace Darinlarimore\Postmaster\Http\Controllers\Web;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Services\SubscriberService;
+use Darinlarimore\Postmaster\Contracts\SubscriberRepository;
+use Darinlarimore\Postmaster\Services\SubscriberService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Http;
@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 /**
  * Inbound bounce/complaint webhooks. Point your provider at:
  *
- *   POST /email-subscribe/webhook/{provider}?key={signing_key}
+ *   POST /postmaster/webhook/{provider}?key={signing_key}
  *
  * Supported providers: ses, mailgun, postmark, sendgrid.
  *
@@ -38,7 +38,7 @@ class WebhookController extends Controller
         if ($interactions === null) {
             // Unknown provider slug: 2xx so a typo'd URL doesn't get the
             // webhook auto-disabled, but log loudly.
-            Log::warning("Email Subscribe: webhook received for unknown provider [{$provider}]");
+            Log::warning("Postmaster: webhook received for unknown provider [{$provider}]");
 
             return response()->json(['message' => 'Unknown provider, ignored']);
         }
@@ -65,7 +65,7 @@ class WebhookController extends Controller
 
     protected function authorized(Request $request): bool
     {
-        $key = config('email_subscribe.webhooks.signing_key');
+        $key = config('postmaster.webhooks.signing_key');
 
         return $key && hash_equals($key, (string) $request->query('key'));
     }

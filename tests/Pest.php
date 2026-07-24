@@ -1,9 +1,9 @@
 <?php
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListContract;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
-use Darinlarimore\StatamicEmailSubscribe\Tests\Support\Factories;
-use Darinlarimore\StatamicEmailSubscribe\Tests\TestCase;
+use Darinlarimore\Postmaster\Contracts\ListContract;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Tests\Support\Factories;
+use Darinlarimore\Postmaster\Tests\TestCase;
 
 uses(TestCase::class)->in(__DIR__);
 

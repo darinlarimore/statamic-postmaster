@@ -1,6 +1,6 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Http\Middleware;
+namespace Darinlarimore\Postmaster\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
@@ -15,7 +15,7 @@ class RedirectInternalCollections
 {
     public function handle(Request $request, Closure $next)
     {
-        if (! $request->isMethod('GET') || config('email_subscribe.storage.driver', 'content') !== 'content') {
+        if (! $request->isMethod('GET') || config('postmaster.storage.driver', 'content') !== 'content') {
             return $next($request);
         }
 
@@ -23,10 +23,10 @@ class RedirectInternalCollections
         $collection = $request->route('collection');
         $handle = is_object($collection) ? $collection->handle() : (string) $collection;
 
-        $subscribers = config('email_subscribe.storage.collections.subscribers', 'email_subscribers');
+        $subscribers = config('postmaster.storage.collections.subscribers', 'postmaster_subscribers');
 
         if ($handle === $subscribers && $routeName === 'statamic.cp.collections.entries.create') {
-            return redirect(cp_route('email-subscribe.subscribers.index'));
+            return redirect(cp_route('postmaster.subscribers.index'));
         }
 
         return $next($request);

@@ -1,5 +1,5 @@
 {
-    "name": "statamic-email-subscribe",
+    "name": "statamic-postmaster",
     "private": true,
     "description": "Control-panel asset build (Vite + Tailwind) and the mjml binary used by spatie/mjml-php when testing template compilation locally.",
     "scripts": {

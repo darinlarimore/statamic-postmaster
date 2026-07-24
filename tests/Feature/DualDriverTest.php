@@ -1,11 +1,11 @@
 <?php
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Jobs\ProcessSendoutBatch;
-use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
-use Darinlarimore\StatamicEmailSubscribe\Models\SubscriberEvent;
-use Darinlarimore\StatamicEmailSubscribe\Services\SendoutService;
+use Darinlarimore\Postmaster\Contracts\SubscriberRepository;
+use Darinlarimore\Postmaster\Jobs\ProcessSendoutBatch;
+use Darinlarimore\Postmaster\Models\Sendout;
+use Darinlarimore\Postmaster\Models\Subscriber;
+use Darinlarimore\Postmaster\Models\SubscriberEvent;
+use Darinlarimore\Postmaster\Services\SendoutService;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -68,14 +68,14 @@ test('subscribing the same email twice collapses to one deterministic entry', fu
     expect($second->getKey())->toBe($first->getKey());
     expect($first->getKey())->toBe(sha1('jane@example.com'));
 
-    $entries = Entry::query()->where('collection', 'email_subscribers')->get();
+    $entries = Entry::query()->where('collection', 'postmaster_subscribers')->get();
     expect($entries)->toHaveCount(1);
     expect($entries->first()->id())->toBe($entries->first()->slug());
 })->group('content');
 
 test('a mid-send unsubscribe is skipped, not failed, and does not abort the sendout', function (string $driver) {
     Mail::fake();
-    config(['email_subscribe.sendout.batch_size' => 1, 'email_subscribe.sendout.max_failures' => 2]);
+    config(['postmaster.sendout.batch_size' => 1, 'postmaster.sendout.max_failures' => 2]);
 
     $sendout = makeContentSendout($driver);
     $service = app(SendoutService::class);
@@ -156,8 +156,8 @@ test('a dropped frozen recipient is logged and surfaces as integrity drift', fun
 
     // Capture the diagnostics channel output via an in-memory Monolog handler.
     $handler = new TestHandler;
-    $logger = new Logger('email_subscribe', [$handler]);
-    Log::shouldReceive('channel')->with('email_subscribe')->andReturn($logger)->byDefault();
+    $logger = new Logger('postmaster', [$handler]);
+    Log::shouldReceive('channel')->with('postmaster')->andReturn($logger)->byDefault();
 
     $sendout = makeContentSendout('content');
     $service = app(SendoutService::class);
@@ -176,5 +176,5 @@ test('a dropped frozen recipient is logged and surfaces as integrity drift', fun
     expect($sendout->fresh()->sent_count)->toBe(2);
 
     $messages = collect($handler->getRecords())->map(fn ($record) => is_array($record) ? $record['message'] : $record->message);
-    expect($messages)->toContain('email-subscribe: dropped recipient');
+    expect($messages)->toContain('postmaster: dropped recipient');
 })->group('content');

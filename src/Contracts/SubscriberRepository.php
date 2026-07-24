@@ -1,6 +1,6 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Contracts;
+namespace Darinlarimore\Postmaster\Contracts;
 
 use DateTimeInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;

@@ -2,7 +2,7 @@
 @section('title', $title)
 
 @section('content')
-    @include('email-subscribe::cp.partials.shell')
+    @include('postmaster::cp.partials.shell')
 
     <div class="es-wrap">
         <div class="es-card">
@@ -36,10 +36,10 @@
                                     @endif
                                 </td>
                                 <td><code>{{ $list->handle }}</code></td>
-                                <td><a href="{{ cp_route('email-subscribe.subscribers.index', ['list' => $list->id]) }}">{{ number_format($list->active_subscribers_count) }}</a></td>
+                                <td><a href="{{ cp_route('postmaster.subscribers.index', ['list' => $list->id]) }}">{{ number_format($list->active_subscribers_count) }}</a></td>
                                 <td class="es-muted">{{ $list->double_opt_in === null ? __('Default') : ($list->double_opt_in ? __('Yes') : __('No')) }}</td>
                                 <td style="text-align: right;">
-                                    <form method="POST" action="{{ cp_route('email-subscribe.lists.destroy', $list->id) }}" onsubmit="return confirm('{{ __('Delete this list? Subscribers themselves are kept.') }}')">
+                                    <form method="POST" action="{{ cp_route('postmaster.lists.destroy', $list->id) }}" onsubmit="return confirm('{{ __('Delete this list? Subscribers themselves are kept.') }}')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="es-btn danger">{{ __('Delete') }}</button>
@@ -55,7 +55,7 @@
         @unless ($createEntryUrl)
         <div class="es-card">
             <h2>{{ __('Create list') }}</h2>
-            <form method="POST" action="{{ cp_route('email-subscribe.lists.store') }}">
+            <form method="POST" action="{{ cp_route('postmaster.lists.store') }}">
                 @csrf
                 <div class="es-form-grid">
                     <label class="es-field">

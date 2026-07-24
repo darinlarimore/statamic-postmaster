@@ -2,7 +2,7 @@
 @section('title', $title)
 
 @section('content')
-    @include('email-subscribe::cp.partials.shell')
+    @include('postmaster::cp.partials.shell')
 
     <div class="es-wrap">
         <div class="es-card">
@@ -11,7 +11,7 @@
                 <span class="es-badge {{ $subscriber->status }}">{{ $subscriber->status }}</span>
             </div>
 
-            <form method="POST" action="{{ cp_route('email-subscribe.subscribers.update', $subscriber->getKey()) }}">
+            <form method="POST" action="{{ cp_route('postmaster.subscribers.update', $subscriber->getKey()) }}">
                 @csrf
                 <div class="es-form-grid">
                     <label class="es-field">
@@ -66,7 +66,7 @@
             </table>
 
             <div style="margin-top: 16px;">
-                <form method="POST" action="{{ cp_route('email-subscribe.subscribers.destroy', $subscriber->id) }}" onsubmit="return confirm('{{ __('Permanently delete this subscriber and their activity?') }}')">
+                <form method="POST" action="{{ cp_route('postmaster.subscribers.destroy', $subscriber->id) }}" onsubmit="return confirm('{{ __('Permanently delete this subscriber and their activity?') }}')">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="es-btn danger">{{ __('Delete subscriber') }}</button>

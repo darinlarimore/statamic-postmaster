@@ -1,12 +1,12 @@
 <?php
 
-use Darinlarimore\StatamicEmailSubscribe\Jobs\ProcessSendoutBatch;
-use Darinlarimore\StatamicEmailSubscribe\Mail\CampaignMail;
-use Darinlarimore\StatamicEmailSubscribe\Models\MailingList;
-use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
-use Darinlarimore\StatamicEmailSubscribe\Models\SubscriberEvent;
-use Darinlarimore\StatamicEmailSubscribe\Services\SendoutService;
+use Darinlarimore\Postmaster\Jobs\ProcessSendoutBatch;
+use Darinlarimore\Postmaster\Mail\CampaignMail;
+use Darinlarimore\Postmaster\Models\MailingList;
+use Darinlarimore\Postmaster\Models\Sendout;
+use Darinlarimore\Postmaster\Models\Subscriber;
+use Darinlarimore\Postmaster\Models\SubscriberEvent;
+use Darinlarimore\Postmaster\Services\SendoutService;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 
@@ -90,7 +90,7 @@ test('unsubscribed, bounced, and pending subscribers are excluded', function () 
 
 test('pausing mid-send stops the chain and resuming picks up without double-sending', function () {
     Mail::fake();
-    config(['email_subscribe.sendout.batch_size' => 1]);
+    config(['postmaster.sendout.batch_size' => 1]);
 
     $sendout = makeSendout();
     $service = app(SendoutService::class);

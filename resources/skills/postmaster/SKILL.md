@@ -1,14 +1,14 @@
 ---
-name: email-subscribe
+name: postmaster
 description: >-
-  Author, send, and manage newsletters with the Statamic Email Subscribe addon.
+  Author, send, and manage newsletters with the Postmaster addon.
   Use when the user wants to create/send an email campaign or newsletter, manage
   mailing lists or subscribers, add subscribers or import a CSV, personalize
   emails with merge tags, or wire a subscribe form. Covers the addon's
   entry-centric workflow and its non-obvious rules.
 ---
 
-# Email Subscribe
+# Postmaster
 
 This addon treats a newsletter as **content**: you author an email as a Statamic
 entry, and a delivery record (a "sendout") is created and driven automatically.
@@ -18,7 +18,7 @@ obvious from the entry itself.
 
 ## The core rule: the entry drives everything
 
-A collection whose blueprint imports the `email-subscribe::email_blocks` fieldset
+A collection whose blueprint imports the `postmaster::email_blocks` fieldset
 is a "newsletter collection". For an entry in one:
 
 - **Saving the entry auto-creates its draft sendout.** Never create a Sendout
@@ -43,7 +43,7 @@ So the end-to-end flow to send a newsletter is:
 4. **Publish** the entry to approve it.
 5. Start or schedule the sendout (see "Actions the entry can't do" below).
 
-If starting a fresh site, `php artisan email-subscribe:scaffold-newsletter`
+If starting a fresh site, `php artisan postmaster:scaffold-newsletter`
 creates the collection, an example entry, a list, and wires Live Preview.
 
 ## Email Blocks
@@ -52,7 +52,7 @@ creates the collection, an example entry, a list, and wires Live Preview.
 h1/h2/h3), `text` (bard/rich text), `image` (asset + alt + optional link),
 `button` (label + url + optional color), `divider`, `spacer` (height). Toggle a
 block's `enabled` off to hide it without deleting. Blocks render through one
-template (`resources/views/vendor/email-subscribe/emails/default.antlers.html`,
+template (`resources/views/vendor/postmaster/emails/default.antlers.html`,
 which imports a partial per type from `emails/blocks/`).
 
 ## Merge tags
@@ -66,7 +66,7 @@ field**. Unknown tags render as empty text.
 
 ## Subscribers, lists, and custom fields
 
-- Subscribers and lists are entries (content driver) in the `email_subscribers`
+- Subscribers and lists are entries (content driver) in the `postmaster_subscribers`
   and `email_lists` collections. **Subscriber entries are keyed by
   `sha1(lowercased email)`** — so to create one correctly, use the addon's Add
   form / `SubscriberService::subscribe()`, or the CP, NOT a raw
@@ -74,8 +74,8 @@ field**. Unknown tags render as empty text.
 - **The subscriber blueprint is the schema for custom fields.** Add a field
   (e.g. `company`) to it and it is automatically captured from subscribe forms
   and CSV imports, editable on the subscriber, and usable as `{{ company }}`.
-- Import subscribers via **Email Subscribe → Subscribers → Import CSV** (there's
-  a downloadable template) or `php artisan email-subscribe:import file.csv
+- Import subscribers via **Postmaster → Subscribers → Import CSV** (there's
+  a downloadable template) or `php artisan postmaster:import file.csv
   --list=handle --subscribed`. The CSV needs an `email` column; names and any
   custom-field columns are picked up when present.
 
@@ -84,12 +84,12 @@ field**. Unknown tags render as empty text.
 Drop the tag in any template (wrap in `{{ nocache }}` if using static caching):
 
 ```antlers
-{{ email_subscribe:form list="newsletter" redirect="/thanks" }}
+{{ postmaster:form list="newsletter" redirect="/thanks" }}
     <input type="email" name="email" required>
     <input type="text" name="first_name">
     <button>Subscribe</button>
-    {{ email_subscribe:errors }}<p>{{ error }}</p>{{ /email_subscribe:errors }}
-{{ /email_subscribe:form }}
+    {{ postmaster:errors }}<p>{{ error }}</p>{{ /postmaster:errors }}
+{{ /postmaster:form }}
 ```
 
 The tag injects the form wrapper, CSRF, a honeypot, and the list field. Valid
@@ -114,7 +114,7 @@ services in code:
 ## Gotchas
 
 - Scheduled sendouts need the scheduler running
-  `email-subscribe:send-scheduled`; queued sends need a worker. With `sync`
+  `postmaster:send-scheduled`; queued sends need a worker. With `sync`
   queue, sending happens in-request.
 - Live Preview only shows for routable collections — the scaffold uses the
   addon's preview URL as the collection route to satisfy this.

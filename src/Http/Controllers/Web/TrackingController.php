@@ -1,11 +1,11 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web;
+namespace Darinlarimore\Postmaster\Http\Controllers\Web;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
-use Darinlarimore\StatamicEmailSubscribe\Models\Link;
-use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Models\SubscriberEvent;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Models\Link;
+use Darinlarimore\Postmaster\Models\Sendout;
+use Darinlarimore\Postmaster\Models\SubscriberEvent;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 

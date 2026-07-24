@@ -1,12 +1,12 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Jobs;
+namespace Darinlarimore\Postmaster\Jobs;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
-use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Models\SubscriberEvent;
-use Darinlarimore\StatamicEmailSubscribe\Sendout\SendoutRecipientResolver;
-use Darinlarimore\StatamicEmailSubscribe\Services\SendoutService;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Models\Sendout;
+use Darinlarimore\Postmaster\Models\SubscriberEvent;
+use Darinlarimore\Postmaster\Sendout\SendoutRecipientResolver;
+use Darinlarimore\Postmaster\Services\SendoutService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\QueryException;
@@ -33,7 +33,7 @@ class ProcessSendoutBatch implements ShouldQueue
     public function middleware(): array
     {
         return [
-            (new WithoutOverlapping('email-subscribe-sendout-'.$this->sendoutId))
+            (new WithoutOverlapping('postmaster-sendout-'.$this->sendoutId))
                 ->releaseAfter(30)
                 ->expireAfter($this->timeout + 60),
         ];
@@ -55,7 +55,7 @@ class ProcessSendoutBatch implements ShouldQueue
         }
 
         $resolver = app(SendoutRecipientResolver::class);
-        $batch = $sendout->nextBatch(config('email_subscribe.sendout.batch_size', 100));
+        $batch = $sendout->nextBatch(config('postmaster.sendout.batch_size', 100));
 
         foreach ($batch as $subscriber) {
             $sendout->refresh();
@@ -77,7 +77,7 @@ class ProcessSendoutBatch implements ShouldQueue
 
             $this->sendToSubscriber($sendout, $subscriber, $service);
 
-            if ($sendout->fail_count >= config('email_subscribe.sendout.max_failures', 10)) {
+            if ($sendout->fail_count >= config('postmaster.sendout.max_failures', 10)) {
                 $sendout->update([
                     'status' => Sendout::STATUS_FAILED,
                     'error' => 'Aborted after '.$sendout->fail_count.' failed recipients.',
@@ -91,7 +91,7 @@ class ProcessSendoutBatch implements ShouldQueue
             self::dispatch($this->sendoutId)
                 ->onConnection($this->connection)
                 ->onQueue($this->queue)
-                ->delay(config('email_subscribe.sendout.batch_delay', 0));
+                ->delay(config('postmaster.sendout.batch_delay', 0));
 
             return;
         }
@@ -114,7 +114,7 @@ class ProcessSendoutBatch implements ShouldQueue
 
     protected function sendToSubscriber(Sendout $sendout, SubscriberContract $subscriber, SendoutService $service): void
     {
-        $attempts = max(1, config('email_subscribe.sendout.max_attempts', 3));
+        $attempts = max(1, config('postmaster.sendout.max_attempts', 3));
 
         for ($attempt = 1; $attempt <= $attempts; $attempt++) {
             try {

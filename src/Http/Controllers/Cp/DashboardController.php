@@ -1,11 +1,11 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Cp;
+namespace Darinlarimore\Postmaster\Http\Controllers\Cp;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
+use Darinlarimore\Postmaster\Contracts\ListRepository;
+use Darinlarimore\Postmaster\Contracts\SubscriberRepository;
+use Darinlarimore\Postmaster\Models\Sendout;
+use Darinlarimore\Postmaster\Models\Subscriber;
 use Statamic\Http\Controllers\CP\CpController;
 
 class DashboardController extends CpController
@@ -14,8 +14,8 @@ class DashboardController extends CpController
     {
         $subscribers = app(SubscriberRepository::class);
 
-        return view('email-subscribe::cp.dashboard', [
-            'title' => 'Email Subscribe',
+        return view('postmaster::cp.dashboard', [
+            'title' => 'Postmaster',
             'subscriberCount' => $subscribers->query(['status' => Subscriber::STATUS_SUBSCRIBED, 'per_page' => 1])->total(),
             'pendingCount' => $subscribers->query(['status' => Subscriber::STATUS_PENDING, 'per_page' => 1])->total(),
             'listCount' => app(ListRepository::class)->all()->count(),

@@ -1,9 +1,9 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web;
+namespace Darinlarimore\Postmaster\Http\Controllers\Web;
 
-use Darinlarimore\StatamicEmailSubscribe\Services\SubscriberService;
-use Darinlarimore\StatamicEmailSubscribe\Support\MergeTags;
+use Darinlarimore\Postmaster\Services\SubscriberService;
+use Darinlarimore\Postmaster\Support\MergeTags;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
@@ -57,10 +57,10 @@ class SubscribeController extends Controller
         }
 
         if ($redirect = $this->safeRedirect($request->input('_redirect'))) {
-            return redirect($redirect)->with('email_subscribe.success', $message);
+            return redirect($redirect)->with('postmaster.success', $message);
         }
 
-        return back()->with('email_subscribe.success', $message);
+        return back()->with('postmaster.success', $message);
     }
 
     /**

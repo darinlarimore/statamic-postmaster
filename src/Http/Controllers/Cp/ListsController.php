@@ -1,9 +1,9 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Cp;
+namespace Darinlarimore\Postmaster\Http\Controllers\Cp;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListContract;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
+use Darinlarimore\Postmaster\Contracts\ListContract;
+use Darinlarimore\Postmaster\Contracts\ListRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Statamic\Facades\Entry;
@@ -25,19 +25,19 @@ class ListsController extends CpController
                 return $list;
             });
 
-        $entryEditUrls = config('email_subscribe.storage.driver', 'content') === 'content'
+        $entryEditUrls = config('postmaster.storage.driver', 'content') === 'content'
             ? $lists->mapWithKeys(fn (ListContract $list) => [
                 $list->id => Entry::find($list->getKey())?->editUrl(),
             ])->filter()->all()
             : [];
 
-        return view('email-subscribe::cp.lists', [
+        return view('postmaster::cp.lists', [
             'title' => 'Mailing Lists',
             'lists' => $lists,
             'entryEditUrls' => $entryEditUrls,
-            'createEntryUrl' => config('email_subscribe.storage.driver', 'content') === 'content'
+            'createEntryUrl' => config('postmaster.storage.driver', 'content') === 'content'
                 ? cp_route('collections.entries.create', [
-                    config('email_subscribe.storage.collections.lists', 'email_lists'),
+                    config('postmaster.storage.collections.lists', 'postmaster_lists'),
                     Site::selected()->handle(),
                 ])
                 : null,

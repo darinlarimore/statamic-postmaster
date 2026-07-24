@@ -1,8 +1,8 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Models;
+namespace Darinlarimore\Postmaster\Models;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -20,7 +20,7 @@ class Subscriber extends Model implements SubscriberContract
 
     const STATUS_COMPLAINED = 'complained';
 
-    protected $table = 'email_subscribe_subscribers';
+    protected $table = 'postmaster_subscribers';
 
     protected $guarded = [];
 
@@ -34,7 +34,7 @@ class Subscriber extends Model implements SubscriberContract
 
     public function lists(): BelongsToMany
     {
-        return $this->belongsToMany(MailingList::class, 'email_subscribe_list_subscriber', 'subscriber_id', 'list_id')
+        return $this->belongsToMany(MailingList::class, 'postmaster_list_subscriber', 'subscriber_id', 'list_id')
             ->withPivot(['subscribed_at', 'unsubscribed_at'])
             ->withTimestamps();
     }

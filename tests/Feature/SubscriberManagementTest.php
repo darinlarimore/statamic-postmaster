@@ -1,11 +1,11 @@
 <?php
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Mail\VerifyMail;
-use Darinlarimore\StatamicEmailSubscribe\Models\MailingList;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
-use Darinlarimore\StatamicEmailSubscribe\Services\SubscriberImporter;
+use Darinlarimore\Postmaster\Contracts\ListRepository;
+use Darinlarimore\Postmaster\Contracts\SubscriberRepository;
+use Darinlarimore\Postmaster\Mail\VerifyMail;
+use Darinlarimore\Postmaster\Models\MailingList;
+use Darinlarimore\Postmaster\Models\Subscriber;
+use Darinlarimore\Postmaster\Services\SubscriberImporter;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
 use Statamic\Facades\Blink;
@@ -16,13 +16,13 @@ use Statamic\Facades\User;
 beforeEach(function () {
     $this->useDriver('database');
     $this->actingAs(tap(User::make()->makeSuper()->email('admin@example.com'))->save());
-    config()->set('email_subscribe.custom_fields', ['company']);
+    config()->set('postmaster.custom_fields', ['company']);
 });
 
 test('subscribers can be added from the CP as already-subscribed', function () {
     $list = MailingList::create(['title' => 'CP List', 'handle' => 'cp-list']);
 
-    $this->post(cp_route('email-subscribe.subscribers.store'), [
+    $this->post(cp_route('postmaster.subscribers.store'), [
         'email' => 'added@example.com',
         'first_name' => 'Addie',
         'company' => 'Added Co',
@@ -36,7 +36,7 @@ test('subscribers can be added from the CP as already-subscribed', function () {
     expect(($subscriber->fields ?? [])['company'] ?? null)->toBe('Added Co');
     expect($subscriber->source)->toBe('cp');
 
-    $this->post(cp_route('email-subscribe.subscribers.store'), ['email' => 'added@example.com'])
+    $this->post(cp_route('postmaster.subscribers.store'), ['email' => 'added@example.com'])
         ->assertSessionHasErrors('email');
 });
 
@@ -46,7 +46,7 @@ test('subscribers can be imported from the CP with custom columns', function () 
     $file = UploadedFile::fake()->createWithContent('subscribers.csv',
         "email,first_name,company\nimported@example.com,Immy,Import Co\nnot-an-email,Bad,\n");
 
-    $this->post(cp_route('email-subscribe.subscribers.import'), [
+    $this->post(cp_route('postmaster.subscribers.import'), [
         'file' => $file,
         'list' => (string) $list->id,
         'subscribed' => '1',
@@ -62,18 +62,18 @@ test('subscribers can be imported from the CP with custom columns', function () 
 test('a CSV without an email column is rejected with a clear error', function () {
     $file = UploadedFile::fake()->createWithContent('bad.csv', "name,company\nJane,Acme\n");
 
-    $this->post(cp_route('email-subscribe.subscribers.import'), ['file' => $file])
+    $this->post(cp_route('postmaster.subscribers.import'), ['file' => $file])
         ->assertSessionHasErrors('file');
 });
 
 test('the CSV template includes custom field columns', function () {
-    $response = $this->get(cp_route('email-subscribe.subscribers.import-template'))->assertOk();
+    $response = $this->get(cp_route('postmaster.subscribers.import-template'))->assertOk();
 
     expect($response->streamedContent())->toContain('email,first_name,last_name,company');
 });
 
 test('the subscribers page shows the add and import tools', function () {
-    $this->get(cp_route('email-subscribe.subscribers.index'))
+    $this->get(cp_route('postmaster.subscribers.index'))
         ->assertOk()
         ->assertSee('Add subscriber')
         ->assertSee('es-add-subscriber', escape: false)
@@ -91,7 +91,7 @@ test('list titles link to their underlying entry under the content driver', func
 
     $entryUrl = Entry::find($list->getKey())->editUrl();
 
-    $this->get(cp_route('email-subscribe.lists.index'))
+    $this->get(cp_route('postmaster.lists.index'))
         ->assertOk()
         ->assertSee($entryUrl, escape: false);
 });
@@ -99,7 +99,7 @@ test('list titles link to their underlying entry under the content driver', func
 test('adding with the opt-in option sends a confirmation email and stays pending', function () {
     Mail::fake();
 
-    $this->post(cp_route('email-subscribe.subscribers.store'), [
+    $this->post(cp_route('postmaster.subscribers.store'), [
         'email' => 'optin@example.com',
         'opt_in' => 'confirm',
     ])->assertSessionHasNoErrors();
@@ -114,7 +114,7 @@ test('all subscriber data is editable, including lists and custom fields', funct
     $listA = MailingList::create(['title' => 'List A', 'handle' => 'list-a']);
     $listB = MailingList::create(['title' => 'List B', 'handle' => 'list-b']);
 
-    $this->post(cp_route('email-subscribe.subscribers.store'), [
+    $this->post(cp_route('postmaster.subscribers.store'), [
         'email' => 'editable@example.com',
         'first_name' => 'Before',
         'company' => 'Before Co',
@@ -124,7 +124,7 @@ test('all subscriber data is editable, including lists and custom fields', funct
     $repository = app(SubscriberRepository::class);
     $subscriber = $repository->findByEmail('editable@example.com');
 
-    $this->post(cp_route('email-subscribe.subscribers.update', $subscriber->getKey()), [
+    $this->post(cp_route('postmaster.subscribers.update', $subscriber->getKey()), [
         'email' => 'edited@example.com',
         'first_name' => 'After',
         'sub_status' => 'subscribed',
@@ -151,12 +151,12 @@ test('subscriber edits rekey the entry under the content driver', function () {
 
     $repository = app(SubscriberRepository::class);
 
-    $this->post(cp_route('email-subscribe.subscribers.store'), ['email' => 'rekey@example.com']);
+    $this->post(cp_route('postmaster.subscribers.store'), ['email' => 'rekey@example.com']);
 
     $subscriber = $repository->findByEmail('rekey@example.com');
     $oldKey = $subscriber->getKey();
 
-    $this->post(cp_route('email-subscribe.subscribers.update', $oldKey), [
+    $this->post(cp_route('postmaster.subscribers.update', $oldKey), [
         'email' => 'rekeyed@example.com',
         'sub_status' => 'subscribed',
     ])->assertSessionHasNoErrors();
@@ -169,7 +169,7 @@ test('lists can be created as CP entries and resolve by handle', function () {
     $this->useDriver('content');
 
     $entry = Entry::make()
-        ->collection('email_lists')
+        ->collection('postmaster_lists')
         ->slug('cp-made-list')
         ->data(['title' => 'CP Made List']);
     $entry->save();
@@ -188,7 +188,7 @@ test('subscriber entries get membership checkboxes and activity history injected
     $listRepository = app(ListRepository::class);
     $list = $listRepository->create(['title' => 'Inject List', 'handle' => 'inject-list', 'double_opt_in' => false]);
 
-    $this->post(cp_route('email-subscribe.subscribers.store'), [
+    $this->post(cp_route('postmaster.subscribers.store'), [
         'email' => 'inject@example.com',
         'list_ids' => ['inject-list'],
     ]);
@@ -216,7 +216,7 @@ test('saving a subscriber entry reconciles memberships and strips the transient 
     $listRepository->create(['title' => 'Sync A', 'handle' => 'sync-a', 'double_opt_in' => false]);
     $listRepository->create(['title' => 'Sync B', 'handle' => 'sync-b', 'double_opt_in' => false]);
 
-    $this->post(cp_route('email-subscribe.subscribers.store'), [
+    $this->post(cp_route('postmaster.subscribers.store'), [
         'email' => 'sync@example.com',
         'list_ids' => ['sync-a'],
     ]);
@@ -235,7 +235,7 @@ test('editing the email on a subscriber entry rekeys it to sha1', function () {
     $this->useDriver('content');
 
     $repository = app(SubscriberRepository::class);
-    $this->post(cp_route('email-subscribe.subscribers.store'), ['email' => 'entrykey@example.com']);
+    $this->post(cp_route('postmaster.subscribers.store'), ['email' => 'entrykey@example.com']);
 
     $oldKey = $repository->keyForEmail('entrykey@example.com');
     $entry = Entry::find($oldKey);
@@ -251,11 +251,11 @@ test('subscriber rows link to the entry editor under the content driver', functi
     $this->useDriver('content');
 
     $repository = app(SubscriberRepository::class);
-    $this->post(cp_route('email-subscribe.subscribers.store'), ['email' => 'rowlink@example.com']);
+    $this->post(cp_route('postmaster.subscribers.store'), ['email' => 'rowlink@example.com']);
 
     $entry = Entry::find($repository->keyForEmail('rowlink@example.com'));
 
-    $this->get(cp_route('email-subscribe.subscribers.index'))
+    $this->get(cp_route('postmaster.subscribers.index'))
         ->assertOk()
         ->assertSee($entry->editUrl(), escape: false);
 });
@@ -263,9 +263,9 @@ test('subscriber rows link to the entry editor under the content driver', functi
 test('subscriber entries carry the email as their title', function () {
     $this->useDriver('content');
 
-    expect(Collection::findByHandle('email_subscribers')->autoGeneratesTitles())->toBeTrue();
+    expect(Collection::findByHandle('postmaster_subscribers')->autoGeneratesTitles())->toBeTrue();
 
-    $this->post(cp_route('email-subscribe.subscribers.store'), ['email' => 'titled@example.com']);
+    $this->post(cp_route('postmaster.subscribers.store'), ['email' => 'titled@example.com']);
 
     $repository = app(SubscriberRepository::class);
     $entry = Entry::find($repository->keyForEmail('titled@example.com'));
@@ -283,7 +283,7 @@ test('CSV export neutralizes formula-injection payloads in subscriber data', fun
     ]);
     app(SubscriberRepository::class)->setMembership($subscriber->getKey(), (string) $list->id, now(), null);
 
-    $content = $this->get(cp_route('email-subscribe.subscribers.export'))->assertOk()->streamedContent();
+    $content = $this->get(cp_route('postmaster.subscribers.export'))->assertOk()->streamedContent();
 
     // Dangerous leading characters are prefixed with a quote, so no formula runs.
     expect($content)->toContain("'=HYPERLINK");

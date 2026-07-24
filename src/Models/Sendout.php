@@ -1,11 +1,11 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Models;
+namespace Darinlarimore\Postmaster\Models;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListContract;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
-use Darinlarimore\StatamicEmailSubscribe\Sendout\SendoutRecipientResolver;
+use Darinlarimore\Postmaster\Contracts\ListContract;
+use Darinlarimore\Postmaster\Contracts\ListRepository;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Sendout\SendoutRecipientResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
@@ -28,7 +28,7 @@ class Sendout extends Model
 
     const STATUS_FAILED = 'failed';
 
-    protected $table = 'email_subscribe_sendouts';
+    protected $table = 'postmaster_sendouts';
 
     protected $guarded = [];
 
@@ -80,7 +80,7 @@ class Sendout extends Model
         $this->from_email = $entry->get('email_from_email') ?: null;
         $this->reply_to = $entry->get('email_reply_to') ?: null;
         $this->template = $entry->get('email_template') ?: null;
-        $this->list_ids = array_map('strval', $entry->get('email_lists') ?: []);
+        $this->list_ids = array_map('strval', $entry->get('postmaster_lists') ?: []);
     }
 
     /**
@@ -131,12 +131,12 @@ class Sendout extends Model
 
     public function fromEmail(): string
     {
-        return $this->from_email ?: config('email_subscribe.from.email');
+        return $this->from_email ?: config('postmaster.from.email');
     }
 
     public function fromName(): ?string
     {
-        return $this->from_name ?: config('email_subscribe.from.name');
+        return $this->from_name ?: config('postmaster.from.name');
     }
 
     protected function resolver(): SendoutRecipientResolver

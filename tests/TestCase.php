@@ -1,15 +1,15 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Tests;
+namespace Darinlarimore\Postmaster\Tests;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Repositories\ContentListRepository;
-use Darinlarimore\StatamicEmailSubscribe\Repositories\ContentSubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Repositories\EloquentListRepository;
-use Darinlarimore\StatamicEmailSubscribe\Repositories\EloquentSubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\ServiceProvider;
-use Darinlarimore\StatamicEmailSubscribe\Support\Storage;
+use Darinlarimore\Postmaster\Contracts\ListRepository;
+use Darinlarimore\Postmaster\Contracts\SubscriberRepository;
+use Darinlarimore\Postmaster\Repositories\ContentListRepository;
+use Darinlarimore\Postmaster\Repositories\ContentSubscriberRepository;
+use Darinlarimore\Postmaster\Repositories\EloquentListRepository;
+use Darinlarimore\Postmaster\Repositories\EloquentSubscriberRepository;
+use Darinlarimore\Postmaster\ServiceProvider;
+use Darinlarimore\Postmaster\Support\Storage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Statamic\Testing\AddonTestCase;
@@ -46,9 +46,9 @@ abstract class TestCase extends AddonTestCase
         $app['config']->set('statamic.search.indexes', []);
 
         $app['config']->set('statamic.editions.pro', true);
-        $app['config']->set('email_subscribe.mjml.strategy', 'none');
-        $app['config']->set('email_subscribe.webhooks.signing_key', 'test-signing-key');
-        $app['config']->set('email_subscribe.storage.driver', $this->storageDriver);
+        $app['config']->set('postmaster.mjml.strategy', 'none');
+        $app['config']->set('postmaster.webhooks.signing_key', 'test-signing-key');
+        $app['config']->set('postmaster.storage.driver', $this->storageDriver);
         $app['config']->set('mail.from.address', 'news@example.com');
         $app['config']->set('mail.from.name', 'Example News');
 
@@ -77,7 +77,7 @@ abstract class TestCase extends AddonTestCase
      */
     public function useDriver(string $driver): void
     {
-        config()->set('email_subscribe.storage.driver', $driver);
+        config()->set('postmaster.storage.driver', $driver);
 
         $this->app->forgetInstance(SubscriberRepository::class);
         $this->app->forgetInstance(ListRepository::class);

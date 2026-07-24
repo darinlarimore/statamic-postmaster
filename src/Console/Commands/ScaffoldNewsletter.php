@@ -1,8 +1,8 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Console\Commands;
+namespace Darinlarimore\Postmaster\Console\Commands;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
+use Darinlarimore\Postmaster\Contracts\ListRepository;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 use Statamic\Facades\AssetContainer;
@@ -13,7 +13,7 @@ use Statamic\Facades\Site;
 
 class ScaffoldNewsletter extends Command
 {
-    protected $signature = 'email-subscribe:scaffold-newsletter
+    protected $signature = 'postmaster:scaffold-newsletter
         {--collection=newsletters : Handle of the collection to create}';
 
     protected $description = 'Create a newsletter collection wired for Email Blocks, with an example entry ready to send';
@@ -29,17 +29,17 @@ class ScaffoldNewsletter extends Command
         $this->ensureExampleEntry($handle);
 
         // Same non-forced publish as the install hook, so the email templates
-        // are in resources/views/vendor/email-subscribe/emails for customizing
+        // are in resources/views/vendor/postmaster/emails for customizing
         // even when scaffolding ran before any composer-triggered install.
-        $this->call('vendor:publish', ['--tag' => 'email-subscribe-views']);
+        $this->call('vendor:publish', ['--tag' => 'postmaster-views']);
 
         $this->newLine();
         $this->info('Ready to test:');
         $this->line('  1. Open the "Example Newsletter" entry - Live Preview shows the compiled email as you edit blocks.');
         $this->line('  2. Send yourself a copy via the entry\'s "Send Test Email" action.');
         $this->line('  3. Pick lists in the sidebar and toggle Published - its sendout flips to "ready to send".');
-        $this->line('  4. Open Email Subscribe → Sendouts to send now or schedule.');
-        $this->line('  Templates live in resources/views/vendor/email-subscribe/emails - edit them freely.');
+        $this->line('  4. Open Postmaster → Sendouts to send now or schedule.');
+        $this->line('  Templates live in resources/views/vendor/postmaster/emails - edit them freely.');
 
         return self::SUCCESS;
     }
@@ -63,7 +63,7 @@ class ScaffoldNewsletter extends Command
     protected function ensureBlueprint(string $handle): void
     {
         if (Blueprint::find("collections.{$handle}.{$handle}")) {
-            $this->line("Blueprint for [{$handle}] already exists - make sure it imports email-subscribe::email_blocks.");
+            $this->line("Blueprint for [{$handle}] already exists - make sure it imports postmaster::email_blocks.");
 
             return;
         }
@@ -78,7 +78,7 @@ class ScaffoldNewsletter extends Command
                             [
                                 'fields' => [
                                     ['handle' => 'title', 'field' => ['type' => 'text', 'display' => 'Title', 'validate' => ['required']]],
-                                    ['import' => 'email-subscribe::email_blocks'],
+                                    ['import' => 'postmaster::email_blocks'],
                                 ],
                             ],
                         ],
@@ -102,7 +102,7 @@ class ScaffoldNewsletter extends Command
     protected function ensurePreviewTarget(string $handle): void
     {
         $collection = Collection::findByHandle($handle);
-        $format = '/'.config('email_subscribe.route_prefix', 'email-subscribe').'/entry-preview/{id}';
+        $format = '/'.config('postmaster.route_prefix', 'postmaster').'/entry-preview/{id}';
         $changed = false;
 
         if (! $collection->route(Site::default()->handle())) {
@@ -152,7 +152,7 @@ class ScaffoldNewsletter extends Command
             ->data([
                 'title' => 'Example Newsletter',
                 'email_preheader' => 'Every block in action, ready to send.',
-                'email_lists' => app(ListRepository::class)->all()
+                'postmaster_lists' => app(ListRepository::class)->all()
                     ->map(fn ($list) => (string) $list->getKey())
                     ->take(1)
                     ->values()
@@ -200,7 +200,7 @@ class ScaffoldNewsletter extends Command
             ['type' => 'text', 'enabled' => true, 'text' => [
                 ['type' => 'paragraph', 'content' => [
                     ['type' => 'text', 'text' => 'This entry was scaffolded by '],
-                    ['type' => 'text', 'marks' => [['type' => 'bold']], 'text' => 'Email Subscribe'],
+                    ['type' => 'text', 'marks' => [['type' => 'bold']], 'text' => 'Postmaster'],
                     ['type' => 'text', 'text' => ' so you can see every block in action. Edit it, reorder the blocks, then preview a sendout that uses it.'],
                 ]],
             ]],

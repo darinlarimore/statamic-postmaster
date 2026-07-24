@@ -1,12 +1,12 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Repositories;
+namespace Darinlarimore\Postmaster\Repositories;
 
 use Carbon\Carbon;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListContract;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Records\ListRecord;
+use Darinlarimore\Postmaster\Contracts\ListContract;
+use Darinlarimore\Postmaster\Contracts\ListRepository;
+use Darinlarimore\Postmaster\Contracts\SubscriberRepository;
+use Darinlarimore\Postmaster\Records\ListRecord;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use Statamic\Contracts\Entries\Entry as EntryContract;
@@ -22,7 +22,7 @@ class ContentListRepository implements ListRepository
 {
     protected function collection(): string
     {
-        return config('email_subscribe.storage.collections.lists', 'email_lists');
+        return config('postmaster.storage.collections.lists', 'postmaster_lists');
     }
 
     public function find(string $key): ?ListContract

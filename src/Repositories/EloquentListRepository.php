@@ -1,16 +1,16 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Repositories;
+namespace Darinlarimore\Postmaster\Repositories;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListContract;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
-use Darinlarimore\StatamicEmailSubscribe\Models\MailingList;
+use Darinlarimore\Postmaster\Contracts\ListContract;
+use Darinlarimore\Postmaster\Contracts\ListRepository;
+use Darinlarimore\Postmaster\Models\MailingList;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 
 /**
  * The database storage driver for mailing lists: they live in the
- * email_subscribe_lists table via the Eloquent MailingList model.
+ * postmaster_lists table via the Eloquent MailingList model.
  */
 class EloquentListRepository implements ListRepository
 {

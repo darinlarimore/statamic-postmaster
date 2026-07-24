@@ -1,4 +1,4 @@
-{{-- Shared chrome for Email Subscribe CP pages. Styles ship as a compiled,
+{{-- Shared chrome for Postmaster CP pages. Styles ship as a compiled,
      prefixed Tailwind stylesheet (resources/css/cp.css) loaded via the
      addon's Vite entry, so they apply outside the CP's Vue-mounted body. --}}
 
@@ -11,10 +11,10 @@
     <div class="es-tabs">
         @php
             $tabs = [
-                ['route' => 'email-subscribe.index', 'pattern' => 'statamic.cp.email-subscribe.index', 'label' => __('Dashboard')],
-                ['route' => 'email-subscribe.sendouts.index', 'pattern' => 'statamic.cp.email-subscribe.sendouts.*', 'label' => __('Sendouts')],
-                ['route' => 'email-subscribe.subscribers.index', 'pattern' => 'statamic.cp.email-subscribe.subscribers.*', 'label' => __('Subscribers')],
-                ['route' => 'email-subscribe.lists.index', 'pattern' => 'statamic.cp.email-subscribe.lists.*', 'label' => __('Lists')],
+                ['route' => 'postmaster.index', 'pattern' => 'statamic.cp.postmaster.index', 'label' => __('Dashboard')],
+                ['route' => 'postmaster.sendouts.index', 'pattern' => 'statamic.cp.postmaster.sendouts.*', 'label' => __('Sendouts')],
+                ['route' => 'postmaster.subscribers.index', 'pattern' => 'statamic.cp.postmaster.subscribers.*', 'label' => __('Subscribers')],
+                ['route' => 'postmaster.lists.index', 'pattern' => 'statamic.cp.postmaster.lists.*', 'label' => __('Lists')],
             ];
         @endphp
         @foreach ($tabs as $tab)

@@ -1,9 +1,9 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web;
+namespace Darinlarimore\Postmaster\Http\Controllers\Web;
 
-use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Support\CampaignRenderer;
+use Darinlarimore\Postmaster\Models\Sendout;
+use Darinlarimore\Postmaster\Support\CampaignRenderer;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Statamic\Facades\Entry;

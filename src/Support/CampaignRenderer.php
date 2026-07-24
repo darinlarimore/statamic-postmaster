@@ -1,10 +1,10 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Support;
+namespace Darinlarimore\Postmaster\Support;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
-use Darinlarimore\StatamicEmailSubscribe\Models\Link;
-use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Models\Link;
+use Darinlarimore\Postmaster\Models\Sendout;
 
 /**
  * Renders a sendout's email HTML.
@@ -44,7 +44,7 @@ class CampaignRenderer
 
         $entry = $sendout->entry();
 
-        $html = view($sendout->template ?: 'email-subscribe::emails.default', [
+        $html = view($sendout->template ?: 'postmaster::emails.default', [
             'sendout' => $sendout,
             'entry' => $entry,
             'subject' => $sendout->subject,
@@ -61,11 +61,11 @@ class CampaignRenderer
 
         $html = Mjml::compile($html);
 
-        if ($trackable && config('email_subscribe.tracking.clicks', true)) {
+        if ($trackable && config('postmaster.tracking.clicks', true)) {
             $html = $this->rewriteLinks($html, $sendout);
         }
 
-        if ($trackable && config('email_subscribe.tracking.opens', true)) {
+        if ($trackable && config('postmaster.tracking.opens', true)) {
             $html = str_replace('</body>', self::TOKEN_OPEN_PIXEL.'</body>', $html);
 
             if (! str_contains($html, self::TOKEN_OPEN_PIXEL)) {
@@ -102,7 +102,7 @@ class CampaignRenderer
      */
     public function personalize(string $html, Sendout $sendout, SubscriberContract $subscriber, bool $tracking = true): string
     {
-        $pixel = $tracking && config('email_subscribe.tracking.opens', true)
+        $pixel = $tracking && config('postmaster.tracking.opens', true)
             ? '<img src="'.e(Urls::open($sendout, $subscriber)).'" width="1" height="1" alt="" style="display:none;" />'
             : '';
 

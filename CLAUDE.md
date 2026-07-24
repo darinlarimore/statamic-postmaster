@@ -21,7 +21,7 @@ To run tests against the other Statamic major: `composer require "statamic/cms:^
 
 ### Rendering pipeline (the key design)
 
-`Support/CampaignRenderer.php` renders a sendout's template (Antlers or Blade, usually MJML) **once per sendout** with `%%es:*%%` sentinel tokens standing in for per-subscriber values, compiles MJML once (`Support/Mjml.php` — binary/api/none strategies), rewrites external links to `%%es:click:{linkId}%%` placeholders (links stored in `email_subscribe_links`, avoiding open-redirect abuse), and stores the result as the sendout's `html` snapshot. At send time `personalize()` swaps sentinels per recipient — so MJML never compiles per-recipient. Test emails (`SendoutService::sendTest`) personalize with `tracking: false` and an unsaved Subscriber (URLs become `#`).
+`Support/CampaignRenderer.php` renders a sendout's template (Antlers or Blade, usually MJML) **once per sendout** with `%%es:*%%` sentinel tokens standing in for per-subscriber values, compiles MJML once (`Support/Mjml.php` — binary/api/none strategies), rewrites external links to `%%es:click:{linkId}%%` placeholders (links stored in `postmaster_links`, avoiding open-redirect abuse), and stores the result as the sendout's `html` snapshot. At send time `personalize()` swaps sentinels per recipient — so MJML never compiles per-recipient. Test emails (`SendoutService::sendTest`) personalize with `tracking: false` and an unsaved Subscriber (URLs become `#`).
 
 ### Sendout engine
 
@@ -39,7 +39,7 @@ All subscriber-facing URLs are Laravel signed routes (`Support/Urls.php`) — id
 
 ### Webhooks
 
-`Http/Controllers/Web/WebhookController.php` handles ses/mailgun/postmark/sendgrid, gated by `?key=` vs `email_subscribe.webhooks.signing_key`. **Always return 2xx for events we don't act on** — providers auto-disable webhooks that keep failing.
+`Http/Controllers/Web/WebhookController.php` handles ses/mailgun/postmark/sendgrid, gated by `?key=` vs `postmaster.webhooks.signing_key`. **Always return 2xx for events we don't act on** — providers auto-disable webhooks that keep failing.
 
 ### CP UI
 

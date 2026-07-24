@@ -1,14 +1,14 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Console\Commands;
+namespace Darinlarimore\Postmaster\Console\Commands;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
-use Darinlarimore\StatamicEmailSubscribe\Services\SubscriberImporter;
+use Darinlarimore\Postmaster\Contracts\ListRepository;
+use Darinlarimore\Postmaster\Services\SubscriberImporter;
 use Illuminate\Console\Command;
 
 class ImportSubscribers extends Command
 {
-    protected $signature = 'email-subscribe:import
+    protected $signature = 'postmaster:import
         {file : Path to a CSV with an email column (first_name/last_name and custom fields optional)}
         {--list= : Mailing list handle to subscribe imported emails to}
         {--subscribed : Import as already-subscribed, skipping double opt-in}';

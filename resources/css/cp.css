@@ -2,7 +2,7 @@
 @import 'tailwindcss/utilities';
 
 /*
- * Control-panel styles for Email Subscribe. Compiled by Vite/Tailwind into a
+ * Control-panel styles for Postmaster. Compiled by Vite/Tailwind into a
  * published stylesheet so it loads outside Statamic's Vue-mounted CP body
  * (an inline <style> there gets stripped by the Vue template compiler).
  *

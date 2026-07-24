@@ -1,9 +1,9 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Mail;
+namespace Darinlarimore\Postmaster\Mail;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
-use Darinlarimore\StatamicEmailSubscribe\Support\Urls;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Support\Urls;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
@@ -16,7 +16,7 @@ class VerifyMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new Address(config('email_subscribe.from.email'), config('email_subscribe.from.name')),
+            from: new Address(config('postmaster.from.email'), config('postmaster.from.name')),
             subject: __('Confirm your subscription'),
         );
     }
@@ -24,7 +24,7 @@ class VerifyMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'email-subscribe::emails.verify',
+            view: 'postmaster::emails.verify',
             with: [
                 'subscriber' => $this->subscriber,
                 'verifyUrl' => Urls::verify($this->subscriber),

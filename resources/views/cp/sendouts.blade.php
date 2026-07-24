@@ -2,7 +2,7 @@
 @section('title', $title)
 
 @section('content')
-    @include('email-subscribe::cp.partials.shell')
+    @include('postmaster::cp.partials.shell')
 
     <div class="es-wrap">
         @if ($pendingEntries->isNotEmpty())
@@ -53,7 +53,7 @@
                     <tbody>
                         @foreach ($sendouts as $sendout)
                             <tr>
-                                <td><a href="{{ cp_route('email-subscribe.sendouts.show', $sendout->id) }}">{{ $sendout->title }}</a></td>
+                                <td><a href="{{ cp_route('postmaster.sendouts.show', $sendout->id) }}">{{ $sendout->title }}</a></td>
                                 <td class="es-muted">{{ $sendout->subject }}</td>
                                 <td>
                                     <span class="es-badge {{ $sendout->statusBadgeClass() }}">{{ $sendout->statusLabel() }}</span>
@@ -76,7 +76,7 @@
                 </table>
 
                 <div class="es-pagination">
-                    {{ $sendouts->links('email-subscribe::cp.partials.pagination') }}
+                    {{ $sendouts->links('postmaster::cp.partials.pagination') }}
                 </div>
             @endif
         </div>

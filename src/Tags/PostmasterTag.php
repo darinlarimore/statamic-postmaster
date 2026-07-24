@@ -1,15 +1,15 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Tags;
+namespace Darinlarimore\Postmaster\Tags;
 
 use Statamic\Tags\Tags;
 
-class EmailSubscribeTag extends Tags
+class PostmasterTag extends Tags
 {
-    protected static $handle = 'email_subscribe';
+    protected static $handle = 'postmaster';
 
     /**
-     * {{ email_subscribe:form list="newsletter" }} ... {{ /email_subscribe:form }}
+     * {{ postmaster:form list="newsletter" }} ... {{ /postmaster:form }}
      *
      * Renders the wrapping <form> with CSRF, honeypot, and list fields.
      * Inside the pair, add your own email/first_name/last_name inputs.
@@ -28,7 +28,7 @@ class EmailSubscribeTag extends Tags
             ->map(fn ($value, $attribute) => $attribute.'="'.e($value).'"')
             ->implode(' ');
 
-        $html = '<form method="POST" action="'.route('email-subscribe.subscribe').'" '.$attributes.'>';
+        $html = '<form method="POST" action="'.route('postmaster.subscribe').'" '.$attributes.'>';
         $html .= csrf_field();
         $html .= '<input type="hidden" name="lists" value="'.e($lists).'">';
         $html .= '<input type="text" name="es_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;" aria-hidden="true">';
@@ -38,7 +38,7 @@ class EmailSubscribeTag extends Tags
         }
 
         $html .= $this->parse([
-            'success' => session('email_subscribe.success'),
+            'success' => session('postmaster.success'),
             'errors' => session()->get('errors')?->getBag('default')->all() ?? [],
         ]);
 
@@ -48,15 +48,15 @@ class EmailSubscribeTag extends Tags
     }
 
     /**
-     * {{ email_subscribe:success }} - flash message after subscribing.
+     * {{ postmaster:success }} - flash message after subscribing.
      */
     public function success()
     {
-        return session('email_subscribe.success');
+        return session('postmaster.success');
     }
 
     /**
-     * {{ email_subscribe:errors }} ... {{ /email_subscribe:errors }}
+     * {{ postmaster:errors }} ... {{ /postmaster:errors }}
      */
     public function errors()
     {

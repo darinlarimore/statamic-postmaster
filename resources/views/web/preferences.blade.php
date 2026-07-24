@@ -1,4 +1,4 @@
-@extends('email-subscribe::web.layout')
+@extends('postmaster::web.layout')
 
 @section('title', __('Email preferences'))
 
@@ -6,8 +6,8 @@
     <h1>{{ __('Email preferences') }}</h1>
     <p>{{ $subscriber->email }}</p>
 
-    @if (session('email_subscribe.success'))
-        <div class="success">{{ session('email_subscribe.success') }}</div>
+    @if (session('postmaster.success'))
+        <div class="success">{{ session('postmaster.success') }}</div>
     @endif
 
     <form method="POST" action="{{ $actionUrl }}">

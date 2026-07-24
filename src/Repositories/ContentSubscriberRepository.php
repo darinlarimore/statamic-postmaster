@@ -1,14 +1,14 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Repositories;
+namespace Darinlarimore\Postmaster\Repositories;
 
 use Carbon\Carbon;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
-use Darinlarimore\StatamicEmailSubscribe\Records\SubscriberRecord;
-use Darinlarimore\StatamicEmailSubscribe\Support\Diagnostics;
-use Darinlarimore\StatamicEmailSubscribe\Support\MergeTags;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Contracts\SubscriberRepository;
+use Darinlarimore\Postmaster\Models\Subscriber;
+use Darinlarimore\Postmaster\Records\SubscriberRecord;
+use Darinlarimore\Postmaster\Support\Diagnostics;
+use Darinlarimore\Postmaster\Support\MergeTags;
 use DateTimeInterface;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -36,7 +36,7 @@ class ContentSubscriberRepository implements SubscriberRepository
 
     protected function collection(): string
     {
-        return config('email_subscribe.storage.collections.subscribers', 'email_subscribers');
+        return config('postmaster.storage.collections.subscribers', 'postmaster_subscribers');
     }
 
     public function keyForEmail(string $email): string

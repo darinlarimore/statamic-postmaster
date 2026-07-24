@@ -1,8 +1,8 @@
 <?php
 
-use Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web\TrackingController;
-use Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web\UnsubscribeController;
-use Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web\WebhookController;
+use Darinlarimore\Postmaster\Http\Controllers\Web\TrackingController;
+use Darinlarimore\Postmaster\Http\Controllers\Web\UnsubscribeController;
+use Darinlarimore\Postmaster\Http\Controllers\Web\WebhookController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\Route;
  * session: no CSRF, no cookies.
  */
 
-Route::prefix(config('email_subscribe.route_prefix', 'email-subscribe'))
-    ->name('email-subscribe.')
+Route::prefix(config('postmaster.route_prefix', 'postmaster'))
+    ->name('postmaster.')
     ->group(function () {
         Route::get('t/open/{sendout}/{subscriber}', [TrackingController::class, 'open'])
             ->middleware('signed')

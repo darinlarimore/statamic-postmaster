@@ -1,11 +1,11 @@
 <?php
 
-use Darinlarimore\StatamicEmailSubscribe\Models\Link;
-use Darinlarimore\StatamicEmailSubscribe\Models\MailingList;
-use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
-use Darinlarimore\StatamicEmailSubscribe\Models\SubscriberEvent;
-use Darinlarimore\StatamicEmailSubscribe\Support\Urls;
+use Darinlarimore\Postmaster\Models\Link;
+use Darinlarimore\Postmaster\Models\MailingList;
+use Darinlarimore\Postmaster\Models\Sendout;
+use Darinlarimore\Postmaster\Models\Subscriber;
+use Darinlarimore\Postmaster\Models\SubscriberEvent;
+use Darinlarimore\Postmaster\Support\Urls;
 
 beforeEach(function () {
     $this->useDriver('database');
@@ -37,7 +37,7 @@ test('clicks record an event, infer an open, and redirect to the target', functi
 });
 
 test('unsigned tracking URLs are rejected', function () {
-    $this->get(route('email-subscribe.track.open', ['sendout' => $this->sendout->id, 'subscriber' => $this->subscriber->id]))
+    $this->get(route('postmaster.track.open', ['sendout' => $this->sendout->id, 'subscriber' => $this->subscriber->id]))
         ->assertForbidden();
 });
 
@@ -49,7 +49,7 @@ test('a bounce webhook suppresses the subscriber', function () {
         'Description' => 'Mailbox does not exist',
     ];
 
-    $this->postJson(route('email-subscribe.webhook', ['provider' => 'postmark', 'key' => 'test-signing-key']), $payload)
+    $this->postJson(route('postmaster.webhook', ['provider' => 'postmark', 'key' => 'test-signing-key']), $payload)
         ->assertOk();
 
     $fresh = $this->subscriber->fresh();
@@ -62,24 +62,24 @@ test('a complaint webhook suppresses the subscriber', function () {
         ['email' => 'jane@example.com', 'event' => 'spamreport'],
     ];
 
-    $this->postJson(route('email-subscribe.webhook', ['provider' => 'sendgrid', 'key' => 'test-signing-key']), $payload)
+    $this->postJson(route('postmaster.webhook', ['provider' => 'sendgrid', 'key' => 'test-signing-key']), $payload)
         ->assertOk();
 
     expect($this->subscriber->fresh()->status)->toBe(Subscriber::STATUS_COMPLAINED);
 });
 
 test('webhooks with a bad key are rejected', function () {
-    $this->postJson(route('email-subscribe.webhook', ['provider' => 'postmark', 'key' => 'wrong']), [])
+    $this->postJson(route('postmaster.webhook', ['provider' => 'postmark', 'key' => 'wrong']), [])
         ->assertForbidden();
 });
 
 test('webhooks for unmatched events still return 2xx', function () {
-    $this->postJson(route('email-subscribe.webhook', ['provider' => 'postmark', 'key' => 'test-signing-key']), [
+    $this->postJson(route('postmaster.webhook', ['provider' => 'postmark', 'key' => 'test-signing-key']), [
         'RecordType' => 'Delivery',
         'Email' => 'jane@example.com',
     ])->assertOk();
 
-    $this->postJson(route('email-subscribe.webhook', ['provider' => 'unknown-provider', 'key' => 'test-signing-key']), [])
+    $this->postJson(route('postmaster.webhook', ['provider' => 'unknown-provider', 'key' => 'test-signing-key']), [])
         ->assertOk();
 
     expect($this->subscriber->fresh()->status)->toBe(Subscriber::STATUS_SUBSCRIBED);

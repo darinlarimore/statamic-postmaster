@@ -2,7 +2,7 @@
 @section('title', $title)
 
 @section('content')
-    @include('email-subscribe::cp.partials.shell')
+    @include('postmaster::cp.partials.shell')
 
     <div class="es-wrap">
         <div class="es-card">
@@ -13,7 +13,7 @@
                         <summary aria-label="{{ __('More actions') }}">&#8943;</summary>
                         <div class="es-menu-panel">
                             <button type="button" onclick="this.closest('details').removeAttribute('open'); document.getElementById('es-import-subscribers').showModal()">{{ __('Import CSV') }}</button>
-                            <a href="{{ cp_route('email-subscribe.subscribers.import-template') }}">{{ __('Download the CSV template') }}</a>
+                            <a href="{{ cp_route('postmaster.subscribers.import-template') }}">{{ __('Download the CSV template') }}</a>
                         </div>
                     </details>
                     <button type="button" class="es-btn primary" onclick="document.getElementById('es-add-subscriber').showModal()">{{ __('Add subscriber') }}</button>
@@ -35,7 +35,7 @@
                     @endforeach
                 </select>
                 <button type="submit" class="es-btn">{{ __('Filter') }}</button>
-                <a class="es-btn" href="{{ cp_route('email-subscribe.subscribers.export', request()->only('status')) }}">{{ __('Export CSV') }}</a>
+                <a class="es-btn" href="{{ cp_route('postmaster.subscribers.export', request()->only('status')) }}">{{ __('Export CSV') }}</a>
             </form>
 
             <table class="es-table">
@@ -51,7 +51,7 @@
                 <tbody>
                     @forelse ($subscribers as $subscriber)
                         <tr>
-                            <td><a href="{{ $entryEditUrls[$subscriber->getKey()] ?? cp_route('email-subscribe.subscribers.show', $subscriber->id) }}">{{ $subscriber->email }}</a></td>
+                            <td><a href="{{ $entryEditUrls[$subscriber->getKey()] ?? cp_route('postmaster.subscribers.show', $subscriber->id) }}">{{ $subscriber->email }}</a></td>
                             <td>{{ $subscriber->fullName() }}</td>
                             <td><span class="es-badge {{ $subscriber->status }}">{{ $subscriber->status }}</span></td>
                             <td class="es-muted">{{ $subscriber->listsForView()->pluck('title')->implode(', ') }}</td>
@@ -64,14 +64,14 @@
             </table>
 
             <div class="es-pagination">
-                {{ $subscribers->links('email-subscribe::cp.partials.pagination') }}
+                {{ $subscribers->links('postmaster::cp.partials.pagination') }}
             </div>
         </div>
 
         {{-- Server-side `open` re-shows a dialog when its form came back with errors. --}}
         <dialog id="es-add-subscriber" class="es-modal" @if ($errors->hasAny(['email', 'first_name', 'last_name', 'opt_in', 'list_ids'])) open @endif>
             <h2>{{ __('Add a subscriber') }}</h2>
-            <form method="POST" action="{{ cp_route('email-subscribe.subscribers.store') }}">
+            <form method="POST" action="{{ cp_route('postmaster.subscribers.store') }}">
                 @csrf
                 <div class="es-form-grid">
                     <label class="es-field">
@@ -127,7 +127,7 @@
 
         <dialog id="es-import-subscribers" class="es-modal" @if ($errors->hasAny(['file', 'list', 'subscribed'])) open @endif>
             <h2>{{ __('Import subscribers') }}</h2>
-            <form method="POST" action="{{ cp_route('email-subscribe.subscribers.import') }}" enctype="multipart/form-data">
+            <form method="POST" action="{{ cp_route('postmaster.subscribers.import') }}" enctype="multipart/form-data">
                 @csrf
                 <label class="es-field">
                     <span>{{ __('CSV file') }}</span>
@@ -158,7 +158,7 @@
 
                 <div class="es-actions" style="margin-top: 12px;">
                     <button type="submit" class="es-btn primary">{{ __('Import') }}</button>
-                    <a class="es-btn" href="{{ cp_route('email-subscribe.subscribers.import-template') }}">{{ __('Download the CSV template') }}</a>
+                    <a class="es-btn" href="{{ cp_route('postmaster.subscribers.import-template') }}">{{ __('Download the CSV template') }}</a>
                     <button type="button" class="es-btn" onclick="this.closest('dialog').close()">{{ __('Cancel') }}</button>
                 </div>
             </form>

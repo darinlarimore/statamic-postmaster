@@ -1,9 +1,9 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web;
+namespace Darinlarimore\Postmaster\Http\Controllers\Web;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
-use Darinlarimore\StatamicEmailSubscribe\Services\SubscriberService;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Services\SubscriberService;
 use Illuminate\Routing\Controller;
 
 class VerifyController extends Controller
@@ -12,10 +12,10 @@ class VerifyController extends Controller
     {
         $subscribers->verify($subscriber);
 
-        if ($redirect = config('email_subscribe.redirects.verify')) {
+        if ($redirect = config('postmaster.redirects.verify')) {
             return redirect($redirect);
         }
 
-        return view('email-subscribe::web.verified', ['subscriber' => $subscriber]);
+        return view('postmaster::web.verified', ['subscriber' => $subscriber]);
     }
 }

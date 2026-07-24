@@ -1,13 +1,13 @@
 <?php
 
-use Darinlarimore\StatamicEmailSubscribe\Actions\SendTestEmail;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Jobs\ProcessSendoutBatch;
-use Darinlarimore\StatamicEmailSubscribe\Mail\CampaignMail;
-use Darinlarimore\StatamicEmailSubscribe\Models\MailingList;
-use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Models\Subscriber;
-use Darinlarimore\StatamicEmailSubscribe\Services\SendoutService;
+use Darinlarimore\Postmaster\Actions\SendTestEmail;
+use Darinlarimore\Postmaster\Contracts\SubscriberRepository;
+use Darinlarimore\Postmaster\Jobs\ProcessSendoutBatch;
+use Darinlarimore\Postmaster\Mail\CampaignMail;
+use Darinlarimore\Postmaster\Models\MailingList;
+use Darinlarimore\Postmaster\Models\Sendout;
+use Darinlarimore\Postmaster\Models\Subscriber;
+use Darinlarimore\Postmaster\Services\SendoutService;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Statamic\Facades\Entry;
@@ -15,7 +15,7 @@ use Statamic\Facades\User;
 
 beforeEach(function () {
     $this->useDriver('database');
-    $this->artisan('email-subscribe:scaffold-newsletter');
+    $this->artisan('postmaster:scaffold-newsletter');
 });
 
 function makeWorkflowEntry(array $data = [], string $slug = 'workflow-issue', bool $published = true): mixed
@@ -40,7 +40,7 @@ test('saving a new entry automatically creates one draft sendout', function () {
     $entry = makeWorkflowEntry([
         'email_subject' => 'Custom Subject {{ first_name }}',
         'email_preheader' => 'A preheader',
-        'email_lists' => [(string) $list->id],
+        'postmaster_lists' => [(string) $list->id],
     ], 'auto-issue');
 
     $sendout = sendoutFor($entry);
@@ -85,18 +85,18 @@ test('starting requires a published entry and picked lists', function () {
     $list = MailingList::create(['title' => 'Gate List', 'handle' => 'gate-list']);
     $service = app(SendoutService::class);
 
-    $unpublished = makeWorkflowEntry(['email_lists' => [(string) $list->id]], 'gate-unpublished', published: false);
+    $unpublished = makeWorkflowEntry(['postmaster_lists' => [(string) $list->id]], 'gate-unpublished', published: false);
     expect(fn () => $service->start(sendoutFor($unpublished)))
         ->toThrow(RuntimeException::class, 'unpublished');
 
-    $noLists = makeWorkflowEntry(['email_lists' => []], 'gate-no-lists');
+    $noLists = makeWorkflowEntry(['postmaster_lists' => []], 'gate-no-lists');
     expect(fn () => $service->start(sendoutFor($noLists)))
         ->toThrow(RuntimeException::class, 'Send to lists');
 });
 
 test('draft sendouts read "ready to send" once their entry is published', function () {
     $list = MailingList::create(['title' => 'Label List', 'handle' => 'label-list']);
-    $entry = makeWorkflowEntry(['email_lists' => [(string) $list->id]], 'label-issue');
+    $entry = makeWorkflowEntry(['postmaster_lists' => [(string) $list->id]], 'label-issue');
 
     expect(sendoutFor($entry)->statusLabel())->toBe('ready to send');
 
@@ -106,7 +106,7 @@ test('draft sendouts read "ready to send" once their entry is published', functi
 
 test('scheduled sendouts read "scheduled" instead of "pending"', function () {
     $list = MailingList::create(['title' => 'Schedule List', 'handle' => 'schedule-list']);
-    $entry = makeWorkflowEntry(['email_lists' => [(string) $list->id]], 'schedule-issue');
+    $entry = makeWorkflowEntry(['postmaster_lists' => [(string) $list->id]], 'schedule-issue');
 
     $sendout = sendoutFor($entry);
     app(SendoutService::class)->start($sendout, now()->addDay());
@@ -119,7 +119,7 @@ test('scheduled sendouts read "scheduled" instead of "pending"', function () {
 
 test('cancelling before anything sends reverts to a ready-to-send draft', function () {
     $list = MailingList::create(['title' => 'Cancel List', 'handle' => 'cancel-list']);
-    $entry = makeWorkflowEntry(['email_lists' => [(string) $list->id]], 'cancel-issue');
+    $entry = makeWorkflowEntry(['postmaster_lists' => [(string) $list->id]], 'cancel-issue');
 
     $sendout = sendoutFor($entry);
     $service = app(SendoutService::class);
@@ -135,7 +135,7 @@ test('cancelling before anything sends reverts to a ready-to-send draft', functi
 
 test('cancelling mid-send keeps the cancelled run record', function () {
     $list = MailingList::create(['title' => 'Midsend List', 'handle' => 'midsend-list']);
-    $entry = makeWorkflowEntry(['email_lists' => [(string) $list->id]], 'midsend-issue');
+    $entry = makeWorkflowEntry(['postmaster_lists' => [(string) $list->id]], 'midsend-issue');
 
     $sendout = sendoutFor($entry);
     $sendout->update(['status' => Sendout::STATUS_SENDING, 'sent_count' => 5]);
@@ -191,14 +191,14 @@ test('the sendouts index surfaces entries that have no sendout yet', function ()
     // Simulate an entry predating auto-created sendouts.
     Sendout::where('entry_id', (string) $entry->id())->delete();
 
-    $this->get(cp_route('email-subscribe.sendouts.index'))
+    $this->get(cp_route('postmaster.sendouts.index'))
         ->assertOk()
         ->assertSee('Entries without a sendout')
         ->assertSee($entry->editUrl(), escape: false);
 
     $entry->save();
 
-    $this->get(cp_route('email-subscribe.sendouts.index'))
+    $this->get(cp_route('postmaster.sendouts.index'))
         ->assertOk()
         ->assertDontSee($entry->editUrl(), escape: false);
 });
@@ -220,16 +220,16 @@ test('sender overrides and template flow from the entry to the sendout', functio
 
     // Blank sender fields fall back to the site defaults.
     $plain = makeWorkflowEntry([], 'plain-sender');
-    expect(sendoutFor($plain)->fromEmail())->toBe(config('email_subscribe.from.email'));
+    expect(sendoutFor($plain)->fromEmail())->toBe(config('postmaster.from.email'));
 });
 
 test('the sendout page shows which lists it sends to', function () {
     $this->actingAs(tap(User::make()->makeSuper()->email('lists@example.com'))->save());
 
     $list = MailingList::create(['title' => 'VIP Subscribers', 'handle' => 'vip-subscribers']);
-    $entry = makeWorkflowEntry(['email_lists' => [(string) $list->id]], 'lists-shown');
+    $entry = makeWorkflowEntry(['postmaster_lists' => [(string) $list->id]], 'lists-shown');
 
-    $this->get(cp_route('email-subscribe.sendouts.show', sendoutFor($entry)->id))
+    $this->get(cp_route('postmaster.sendouts.show', sendoutFor($entry)->id))
         ->assertOk()
         ->assertSee('VIP Subscribers');
 });
@@ -237,7 +237,7 @@ test('the sendout page shows which lists it sends to', function () {
 test('the sendouts index offers a button to create a new newsletter entry', function () {
     $this->actingAs(tap(User::make()->makeSuper()->email('creator@example.com'))->save());
 
-    $this->get(cp_route('email-subscribe.sendouts.index'))
+    $this->get(cp_route('postmaster.sendouts.index'))
         ->assertOk()
         ->assertSee('New Newsletter entry')
         ->assertSee(cp_route('collections.entries.create', ['newsletters', 'default']), escape: false);
@@ -257,9 +257,9 @@ test('the sendout page shows how many people it will send to', function () {
             ->setMembership($subscriber->getKey(), (string) $list->id, now(), null);
     }
 
-    $entry = makeWorkflowEntry(['email_lists' => [(string) $list->id]], 'count-issue');
+    $entry = makeWorkflowEntry(['postmaster_lists' => [(string) $list->id]], 'count-issue');
 
-    $this->get(cp_route('email-subscribe.sendouts.show', sendoutFor($entry)->id))
+    $this->get(cp_route('postmaster.sendouts.show', sendoutFor($entry)->id))
         ->assertOk()
         ->assertSee('2 recipients');
 });
@@ -276,7 +276,7 @@ test('a completed send unpublishes the entry', function () {
     app(SubscriberRepository::class)
         ->setMembership($subscriber->getKey(), (string) $list->id, now(), null);
 
-    $entry = makeWorkflowEntry(['email_lists' => [(string) $list->id]], 'done-issue');
+    $entry = makeWorkflowEntry(['postmaster_lists' => [(string) $list->id]], 'done-issue');
     $sendout = sendoutFor($entry);
 
     app(SendoutService::class)->start($sendout);

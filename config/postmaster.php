@@ -13,11 +13,11 @@ return [
     */
 
     'from' => [
-        'email' => env('EMAIL_SUBSCRIBE_FROM_EMAIL', config('mail.from.address')),
-        'name' => env('EMAIL_SUBSCRIBE_FROM_NAME', config('mail.from.name')),
+        'email' => env('POSTMASTER_FROM_EMAIL', config('mail.from.address')),
+        'name' => env('POSTMASTER_FROM_NAME', config('mail.from.name')),
     ],
 
-    'reply_to' => env('EMAIL_SUBSCRIBE_REPLY_TO'),
+    'reply_to' => env('POSTMASTER_REPLY_TO'),
 
     /*
     |--------------------------------------------------------------------------
@@ -29,7 +29,7 @@ return [
     |
     */
 
-    'mailer' => env('EMAIL_SUBSCRIBE_MAILER'),
+    'mailer' => env('POSTMASTER_MAILER'),
 
     /*
     |--------------------------------------------------------------------------
@@ -43,8 +43,8 @@ return [
     */
 
     'sendout' => [
-        'queue' => env('EMAIL_SUBSCRIBE_QUEUE', 'default'),
-        'connection' => env('EMAIL_SUBSCRIBE_QUEUE_CONNECTION'),
+        'queue' => env('POSTMASTER_QUEUE', 'default'),
+        'connection' => env('POSTMASTER_QUEUE_CONNECTION'),
         'batch_size' => 100,
         'batch_delay' => 0, // seconds to wait between batches
         'max_attempts' => 3, // send attempts per recipient before marking failed
@@ -94,7 +94,7 @@ return [
     */
 
     'mjml' => [
-        'strategy' => env('EMAIL_SUBSCRIBE_MJML', 'binary'), // binary, api, none
+        'strategy' => env('POSTMASTER_MJML', 'binary'), // binary, api, none
         'node_path' => env('MJML_NODE_PATH'),
         'api_id' => env('MJML_API_ID'),
         'api_secret' => env('MJML_API_SECRET'),
@@ -113,7 +113,7 @@ return [
     */
 
     'webhooks' => [
-        'signing_key' => env('EMAIL_SUBSCRIBE_WEBHOOK_KEY'),
+        'signing_key' => env('POSTMASTER_WEBHOOK_KEY'),
     ],
 
     /*
@@ -141,7 +141,7 @@ return [
     |
     */
 
-    'route_prefix' => 'email-subscribe',
+    'route_prefix' => 'postmaster',
 
     /*
     |--------------------------------------------------------------------------
@@ -160,11 +160,11 @@ return [
     */
 
     'storage' => [
-        'driver' => env('EMAIL_SUBSCRIBE_STORAGE', 'content'), // content, database
+        'driver' => env('POSTMASTER_STORAGE', 'content'), // content, database
 
         'collections' => [
-            'subscribers' => 'email_subscribers',
-            'lists' => 'email_lists',
+            'subscribers' => 'postmaster_subscribers',
+            'lists' => 'postmaster_lists',
         ],
     ],
 
@@ -174,17 +174,17 @@ return [
     |--------------------------------------------------------------------------
     |
     | The addon logs recipient-resolution anomalies, concurrency signals, and
-    | integrity drift to a dedicated "email_subscribe" log channel so they are
+    | integrity drift to a dedicated "postmaster" log channel so they are
     | easy to watch (and are picked up by warning/error-level monitoring). Use
     | these signals to decide when to move from the content driver to the
-    | database driver. Define your own "email_subscribe" channel in
+    | database driver. Define your own "postmaster" channel in
     | config/logging.php to override where these lines land.
     |
     */
 
     'logging' => [
-        'channel' => 'email_subscribe',
-        'path' => storage_path('logs/email_subscribe.log'),
+        'channel' => 'postmaster',
+        'path' => storage_path('logs/postmaster.log'),
         'level' => 'warning',
     ],
 

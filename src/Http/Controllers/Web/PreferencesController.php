@@ -1,11 +1,11 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web;
+namespace Darinlarimore\Postmaster\Http\Controllers\Web;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\ListRepository;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberRepository;
-use Darinlarimore\StatamicEmailSubscribe\Services\SubscriberService;
+use Darinlarimore\Postmaster\Contracts\ListRepository;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Contracts\SubscriberRepository;
+use Darinlarimore\Postmaster\Services\SubscriberService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
@@ -13,7 +13,7 @@ class PreferencesController extends Controller
 {
     public function show(Request $request, SubscriberContract $subscriber)
     {
-        return view('email-subscribe::web.preferences', [
+        return view('postmaster::web.preferences', [
             'subscriber' => $subscriber,
             'lists' => app(ListRepository::class)->all()->sortBy(fn ($list) => $list->title)->values(),
             'activeListIds' => app(SubscriberRepository::class)->activeListKeys($subscriber->getKey()),
@@ -39,6 +39,6 @@ class PreferencesController extends Controller
             array_map('strval', $validated['lists'] ?? []),
         );
 
-        return back()->with('email_subscribe.success', __('Your preferences have been updated.'));
+        return back()->with('postmaster.success', __('Your preferences have been updated.'));
     }
 }

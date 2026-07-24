@@ -1,6 +1,6 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Support;
+namespace Darinlarimore\Postmaster\Support;
 
 use Illuminate\Support\Facades\Log;
 use Psr\Log\LoggerInterface;
@@ -10,30 +10,30 @@ use Psr\Log\LoggerInterface;
  * a database's transactional guarantees for flat files, so a handful of
  * conditions (a recipient that couldn't be resolved, a lock timeout, integrity
  * drift after a sendout) are worth surfacing. They land on a dedicated
- * "email_subscribe" log channel at warning/error level so log-based monitoring
+ * "postmaster" log channel at warning/error level so log-based monitoring
  * picks them up — watch these to decide when to move to the database driver.
  *
- * A host app can override where these lines go by declaring an "email_subscribe"
+ * A host app can override where these lines go by declaring an "postmaster"
  * channel in its own config/logging.php; boot() will not clobber it.
  */
 class Diagnostics
 {
     public static function boot(): void
     {
-        if (config()->has('logging.channels.email_subscribe')) {
+        if (config()->has('logging.channels.postmaster')) {
             return;
         }
 
-        config()->set('logging.channels.email_subscribe', [
+        config()->set('logging.channels.postmaster', [
             'driver' => 'single',
-            'path' => config('email_subscribe.logging.path', storage_path('logs/email_subscribe.log')),
-            'level' => config('email_subscribe.logging.level', 'warning'),
+            'path' => config('postmaster.logging.path', storage_path('logs/postmaster.log')),
+            'level' => config('postmaster.logging.level', 'warning'),
         ]);
     }
 
     public static function channel(): LoggerInterface
     {
-        return Log::channel(config('email_subscribe.logging.channel', 'email_subscribe'));
+        return Log::channel(config('postmaster.logging.channel', 'postmaster'));
     }
 
     /**
@@ -41,7 +41,7 @@ class Diagnostics
      */
     public static function recipientAnomaly(string $reason, array $context = []): void
     {
-        static::channel()->warning("email-subscribe: recipient anomaly [{$reason}]", $context);
+        static::channel()->warning("postmaster: recipient anomaly [{$reason}]", $context);
     }
 
     /**
@@ -49,7 +49,7 @@ class Diagnostics
      */
     public static function droppedRecipient(string $subscriberKey, int $sendoutId, array $context = []): void
     {
-        static::channel()->warning('email-subscribe: dropped recipient', array_merge([
+        static::channel()->warning('postmaster: dropped recipient', array_merge([
             'subscriber_key' => $subscriberKey,
             'sendout_id' => $sendoutId,
         ], $context));
@@ -57,7 +57,7 @@ class Diagnostics
 
     public static function countMismatch(int $sendoutId, int $recipientCount, int $sent, int $failed, int $skipped): void
     {
-        static::channel()->warning('email-subscribe: sendout count mismatch', [
+        static::channel()->warning('postmaster: sendout count mismatch', [
             'sendout_id' => $sendoutId,
             'recipient_count' => $recipientCount,
             'sent' => $sent,
@@ -72,7 +72,7 @@ class Diagnostics
      */
     public static function lockTimeout(string $key, array $context = []): void
     {
-        static::channel()->warning('email-subscribe: subscriber lock timeout', array_merge([
+        static::channel()->warning('postmaster: subscriber lock timeout', array_merge([
             'subscriber_key' => $key,
         ], $context));
     }
@@ -82,7 +82,7 @@ class Diagnostics
      */
     public static function staleMerge(string $key, array $context = []): void
     {
-        static::channel()->warning('email-subscribe: subscriber changed during merge', array_merge([
+        static::channel()->warning('postmaster: subscriber changed during merge', array_merge([
             'subscriber_key' => $key,
         ], $context));
     }
@@ -92,7 +92,7 @@ class Diagnostics
      */
     public static function unsafeConfig(array $context = []): void
     {
-        static::channel()->error('email-subscribe: unsafe content-driver configuration', $context);
+        static::channel()->error('postmaster: unsafe content-driver configuration', $context);
     }
 
     /**
@@ -100,7 +100,7 @@ class Diagnostics
      */
     public static function reconcileDrift(int $sendoutId, array $drift): void
     {
-        static::channel()->warning('email-subscribe: sendout integrity drift', array_merge([
+        static::channel()->warning('postmaster: sendout integrity drift', array_merge([
             'sendout_id' => $sendoutId,
         ], $drift));
     }

@@ -1,9 +1,9 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Actions;
+namespace Darinlarimore\Postmaster\Actions;
 
-use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Services\SendoutService;
+use Darinlarimore\Postmaster\Models\Sendout;
+use Darinlarimore\Postmaster\Services\SendoutService;
 use Statamic\Actions\Action;
 use Statamic\Contracts\Entries\Entry;
 

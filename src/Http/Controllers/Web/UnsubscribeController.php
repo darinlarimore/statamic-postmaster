@@ -1,11 +1,11 @@
 <?php
 
-namespace Darinlarimore\StatamicEmailSubscribe\Http\Controllers\Web;
+namespace Darinlarimore\Postmaster\Http\Controllers\Web;
 
-use Darinlarimore\StatamicEmailSubscribe\Contracts\SubscriberContract;
-use Darinlarimore\StatamicEmailSubscribe\Models\Sendout;
-use Darinlarimore\StatamicEmailSubscribe\Services\SubscriberService;
-use Darinlarimore\StatamicEmailSubscribe\Support\Urls;
+use Darinlarimore\Postmaster\Contracts\SubscriberContract;
+use Darinlarimore\Postmaster\Models\Sendout;
+use Darinlarimore\Postmaster\Services\SubscriberService;
+use Darinlarimore\Postmaster\Support\Urls;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
@@ -17,11 +17,11 @@ class UnsubscribeController extends Controller
 
         $subscribers->unsubscribe($subscriber, $sendout);
 
-        if ($redirect = config('email_subscribe.redirects.unsubscribe')) {
+        if ($redirect = config('postmaster.redirects.unsubscribe')) {
             return redirect($redirect);
         }
 
-        return view('email-subscribe::web.unsubscribed', [
+        return view('postmaster::web.unsubscribed', [
             'subscriber' => $subscriber,
             'preferencesUrl' => Urls::preferences($subscriber),
         ]);

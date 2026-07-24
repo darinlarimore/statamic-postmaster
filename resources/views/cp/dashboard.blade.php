@@ -2,7 +2,7 @@
 @section('title', $title)
 
 @section('content')
-    @include('email-subscribe::cp.partials.shell')
+    @include('postmaster::cp.partials.shell')
 
     <div class="es-wrap">
         <div class="es-stats">
@@ -32,7 +32,7 @@
                     <tbody>
                         @foreach ($recentSendouts as $sendout)
                             <tr>
-                                <td><a href="{{ cp_route('email-subscribe.sendouts.show', $sendout->id) }}">{{ $sendout->title }}</a></td>
+                                <td><a href="{{ cp_route('postmaster.sendouts.show', $sendout->id) }}">{{ $sendout->title }}</a></td>
                                 <td><span class="es-badge {{ $sendout->statusBadgeClass() }}">{{ $sendout->statusLabel() }}</span></td>
                                 <td>{{ number_format($sendout->sent_count) }} / {{ number_format($sendout->recipient_count) }}</td>
                                 <td class="es-muted">{{ $sendout->created_at->diffForHumans() }}</td>
@@ -52,7 +52,7 @@
                     <tbody>
                         @foreach ($recentSubscribers as $subscriber)
                             <tr>
-                                <td><a href="{{ cp_route('email-subscribe.subscribers.show', $subscriber->id) }}">{{ $subscriber->email }}</a></td>
+                                <td><a href="{{ cp_route('postmaster.subscribers.show', $subscriber->id) }}">{{ $subscriber->email }}</a></td>
                                 <td><span class="es-badge {{ $subscriber->status }}">{{ $subscriber->status }}</span></td>
                                 <td class="es-muted">{{ $subscriber->created_at->diffForHumans() }}</td>
                             </tr>
