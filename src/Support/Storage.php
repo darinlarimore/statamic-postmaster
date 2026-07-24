@@ -11,14 +11,50 @@ use Statamic\Facades\Collection;
  * package, because Statamic only discovers blueprints from the app's resources
  * directory — setNamespace('collections.'.$handle)->save() writes there.
  *
+ * Zero-config either way: a site that commits these collections to git (the
+ * normal Statamic workflow) keeps its files; a site that doesn't gets them
+ * created on first boot. The reconcile below never saves when the committed
+ * files are already correct, and it is skipped entirely while the Stache is
+ * being warmed (statamic:install / stache:warm) — saving a collection or
+ * blueprint mid-warm re-indexes entries against a not-yet-registered
+ * collection, which throws "entryClass() on null" and fails deploys.
+ *
  * Only invoked under the content driver.
  */
 class Storage
 {
     public static function bootStorage(): void
     {
+        if (static::warmingStache()) {
+            return;
+        }
+
         static::ensureSubscribers();
         static::ensureLists();
+    }
+
+    /**
+     * True while a console command is (re)building the Stache from disk, when
+     * every collection is being read and mutating one is unsafe. Committed
+     * collections are already on disk and need no help here; uncommitted ones
+     * are created on the next real (web/CP) request instead.
+     */
+    protected static function warmingStache(): bool
+    {
+        if (! app()->runningInConsole()) {
+            return false;
+        }
+
+        $command = $_SERVER['argv'][1] ?? null;
+
+        return in_array($command, [
+            'statamic:install',
+            'statamic:stache:warm',
+            'statamic:stache:refresh',
+            'cache:clear',
+            'optimize',
+            'optimize:clear',
+        ], true);
     }
 
     protected static function ensureSubscribers(): void
@@ -27,7 +63,7 @@ class Storage
 
         if (! Collection::handleExists($handle)) {
             Collection::make($handle)
-                ->title('Postmasterrs')
+                ->title('Subscribers')
                 ->dated(true)
                 ->revisionsEnabled(false)
                 ->save();
