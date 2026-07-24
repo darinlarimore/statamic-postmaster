@@ -56,6 +56,17 @@ test('bootStorage creates the storage collections on a normal boot', function ()
     expect(Collection::findByHandle($subscribers)->title())->toBe('Subscribers');
 });
 
+test('bootStorage heals a legacy Postmasterrs collection title', function () {
+    [$subscribers] = pointStorageAt('title-heal');
+
+    Collection::make($subscribers)->title('Postmasterrs')->dated(true)->save();
+    expect(Collection::findByHandle($subscribers)->title())->toBe('Postmasterrs');
+
+    Storage::bootStorage();
+
+    expect(Collection::findByHandle($subscribers)->title())->toBe('Subscribers');
+});
+
 test('bootStorage stands down while the Stache is being warmed', function () {
     [$subscribers, $lists] = pointStorageAt('warm');
 

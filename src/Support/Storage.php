@@ -69,6 +69,7 @@ class Storage
                 ->save();
         }
 
+        static::ensureTitle(Collection::findByHandle($handle), 'Subscribers');
         static::ensureSeoExclusion(Collection::findByHandle($handle));
         static::ensureTitleFormat(Collection::findByHandle($handle));
 
@@ -137,6 +138,18 @@ class Storage
         if ($kept->count() !== $fields->count()) {
             $contents['tabs']['main']['sections'][0]['fields'] = $kept->values()->all();
             $blueprint->setContents($contents)->save();
+        }
+    }
+
+    /**
+     * Heals the display title on collections created by earlier versions -
+     * the subscribers collection shipped with a "Postmasterrs" typo, and
+     * bootStorage() only titles at creation, so existing sites would keep it.
+     */
+    protected static function ensureTitle($collection, string $title): void
+    {
+        if ($collection->title() !== $title) {
+            $collection->title($title)->save();
         }
     }
 
