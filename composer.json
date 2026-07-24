@@ -6,12 +6,12 @@
     "keywords": ["statamic", "statamic-addon", "newsletter", "email", "mjml", "campaigns"],
     "autoload": {
         "psr-4": {
-            "Darinlarimore\\StatamicEmailSubscribe\\": "src"
+            "Darinlarimore\\Postmaster\\": "src"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Darinlarimore\\StatamicEmailSubscribe\\Tests\\": "tests"
+            "Darinlarimore\\Postmaster\\Tests\\": "tests"
         }
     },
     "require": {
@@ -40,7 +40,7 @@
         },
         "laravel": {
             "providers": [
-                "Darinlarimore\\StatamicEmailSubscribe\\ServiceProvider"
+                "Darinlarimore\\Postmaster\\ServiceProvider"
             ]
         }
     },
