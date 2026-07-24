@@ -1,5 +1,5 @@
 {
-    "name": "darinlarimore/statamic-email-subscribe",
+    "name": "darinlarimore/statamic-postmaster",
     "description": "Newsletter subscriptions, MJML campaigns, and queued sendouts for Statamic",
     "type": "statamic-addon",
     "license": "proprietary",
