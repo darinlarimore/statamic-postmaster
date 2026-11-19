@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Commercial Statamic addon: mailing lists, subscribers with double opt-in, MJML campaign templates, queue-batched sendouts, open/click tracking, and bounce/complaint webhooks. Supports both Statamic 5 and 6 (`statamic/cms: ^5.0|^6.0`, PHP `^8.2`). Data lives in the database (migrations under `database/migrations/`), not the Stache.
+Free (MIT) Statamic addon: mailing lists, subscribers with double opt-in, MJML campaign templates, queue-batched sendouts, open/click tracking, and bounce/complaint webhooks. Supports both Statamic 5 and 6 (`statamic/cms: ^5.0|^6.0`, PHP `^8.2`). Data lives in the database (migrations under `database/migrations/`), not the Stache.
 
 ## Commands
 

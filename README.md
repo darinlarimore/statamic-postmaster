@@ -316,4 +316,4 @@ See [config/postmaster.php](config/postmaster.php) — from name/email, mailer, 
 
 ## License
 
-Commercial — one project per license. See [LICENSE](LICENSE).
+MIT — free to use. See [LICENSE](LICENSE).
